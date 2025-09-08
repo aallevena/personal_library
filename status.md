@@ -17,11 +17,12 @@ Building a family personal library management web app to track books with ISBN l
 4. Store book information in a database
 5. Display books in a clean web interface
 
-## Current Status: Phase 1 Complete
+## Current Status: Phase 2 Complete
 - ✅ Project requirements reviewed
 - ✅ Technology stack confirmed
 - ✅ Architecture decisions finalized
 - ✅ Phase 1: Project Setup completed
+- ✅ Phase 2: Core Backend completed
 
 ## Confirmed Decisions
 1. ✅ Next.js with TypeScript
@@ -40,10 +41,10 @@ Building a family personal library management web app to track books with ISBN l
 3. ✅ Design and create database schema
 4. ✅ Configure Tailwind CSS for styling
 
-### Phase 2: Core Backend
-5. ⏳ Create Open Library API service abstraction
-6. ⏳ Build book management API routes (CRUD operations)
-7. ⏳ Implement ISBN lookup functionality
+### Phase 2: Core Backend ✅
+5. ✅ Create Open Library API service abstraction
+6. ✅ Build book management API routes (CRUD operations)
+7. ✅ Implement ISBN lookup functionality
 
 ### Phase 3: Frontend UI
 8. ⏳ Create book listing/library view component
@@ -72,6 +73,29 @@ Books Table:
 - isbn (string)
 ```
 
-## Future Features (Phase 2)
+## Phase 2 Implementation Details
+### ✅ Open Library API Service (`src/app/lib/openLibrary.ts`)
+- Complete ISBN validation (ISBN-10 and ISBN-13)
+- Robust book lookup with error handling
+- Fallback search by title/author
+- Data formatting for consistent response structure
+
+### ✅ Book Management API Routes
+- `GET /api/books` - List all books
+- `POST /api/books` - Create new book  
+- `GET /api/books/[id]` - Get specific book
+- `PUT /api/books/[id]` - Update book
+- `DELETE /api/books/[id]` - Delete book
+
+### ✅ ISBN Lookup API
+- `GET /api/isbn/[isbn]` - Look up book by ISBN
+- Returns formatted book data ready for form population
+
+### ✅ Database Layer (`src/app/lib/db.ts`)
+- Complete CRUD operations
+- Additional helper functions (getBooksByState)
+- Proper TypeScript interfaces and error handling
+
+## Future Features (Later Phases)
 - ISBN scanning via camera
 - Check out/check in functionality
