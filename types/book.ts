@@ -29,13 +29,20 @@ export interface BookFormData {
 export interface OpenLibraryBook {
   title?: string;
   authors?: Array<{
-    name: string;
-  }>;
+    key: string;
+    name?: string;
+  }> | string[];
   publish_date?: string;
   description?: string | {
+    type: string;
     value: string;
   };
   subjects?: string[];
   isbn_10?: string[];
   isbn_13?: string[];
+  publishers?: string[];
+  number_of_pages?: number;
+  works?: Array<{
+    key: string;
+  }>;
 }
