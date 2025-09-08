@@ -1,0 +1,284 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Book, BookFormData } from '../../types/book';
+
+interface AddBookFormProps {
+  book?: Book | null;
+  onSubmit: (data: BookFormData) => void;
+  onCancel: () => void;
+  loading: boolean;
+}
+
+export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBookFormProps) {
+  const [formData, setFormData] = useState<BookFormData>({
+    title: '',
+    author: '',
+    publish_date: '',
+    summary: '',
+    state: 'In library',
+    current_possessor: '',
+    times_read: 0,
+    last_read: '',
+    isbn: '',
+  });
+
+  const [isbnLookup, setIsbnLookup] = useState({
+    loading: false,
+    error: null as string | null,
+  });
+
+  useEffect(() => {
+    if (book) {
+      setFormData({
+        title: book.title,
+        author: book.author || '',
+        publish_date: book.publish_date || '',
+        summary: book.summary || '',
+        state: book.state,
+        current_possessor: book.current_possessor,
+        times_read: book.times_read,
+        last_read: book.last_read || '',
+        isbn: book.isbn || '',
+      });
+    }
+  }, [book]);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'times_read' ? parseInt(value) || 0 : value,
+    }));
+  };
+
+  const handleIsbnLookup = async () => {
+    if (!formData.isbn) return;
+    
+    setIsbnLookup({ loading: true, error: null });
+    
+    try {
+      const response = await fetch(`/api/isbn/${formData.isbn}`);
+      const data = await response.json();
+      
+      if (data.success && data.book) {
+        setFormData(prev => ({
+          ...prev,
+          title: data.book.title || prev.title,
+          author: data.book.author || prev.author,
+          publish_date: data.book.publish_date || prev.publish_date,
+          summary: data.book.summary || prev.summary,
+        }));
+        setIsbnLookup({ loading: false, error: null });
+      } else {
+        setIsbnLookup({ loading: false, error: data.error || 'Book not found' });
+      }
+    } catch (error) {
+      setIsbnLookup({ loading: false, error: 'Failed to lookup book' });
+      console.error('ISBN lookup error:', error);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {book ? 'Edit Book' : 'Add New Book'}
+            </h2>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* ISBN Lookup Section */}
+          <div className="space-y-2">
+            <label htmlFor="isbn" className="block text-sm font-medium text-gray-700">
+              ISBN (Optional)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                id="isbn"
+                name="isbn"
+                value={formData.isbn}
+                onChange={handleInputChange}
+                placeholder="Enter ISBN to auto-fill book details"
+                className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={handleIsbnLookup}
+                disabled={!formData.isbn || isbnLookup.loading}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {isbnLookup.loading ? 'Looking up...' : 'Lookup'}
+              </button>
+            </div>
+            {isbnLookup.error && (
+              <p className="text-sm text-red-600">{isbnLookup.error}</p>
+            )}
+          </div>
+
+          {/* Required Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                Title *
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                required
+                value={formData.title}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="author" className="block text-sm font-medium text-gray-700">
+                Author
+              </label>
+              <input
+                type="text"
+                id="author"
+                name="author"
+                value={formData.author}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                State *
+              </label>
+              <select
+                id="state"
+                name="state"
+                required
+                value={formData.state}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="In library">In library</option>
+                <option value="Checked out">Checked out</option>
+                <option value="Lost">Lost</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="current_possessor" className="block text-sm font-medium text-gray-700">
+                Current Possessor *
+              </label>
+              <input
+                type="text"
+                id="current_possessor"
+                name="current_possessor"
+                required
+                value={formData.current_possessor}
+                onChange={handleInputChange}
+                placeholder="e.g., Tony, Sarah, etc."
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Optional Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="publish_date" className="block text-sm font-medium text-gray-700">
+                Publish Date
+              </label>
+              <input
+                type="date"
+                id="publish_date"
+                name="publish_date"
+                value={formData.publish_date}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="times_read" className="block text-sm font-medium text-gray-700">
+                Times Read
+              </label>
+              <input
+                type="number"
+                id="times_read"
+                name="times_read"
+                min="0"
+                value={formData.times_read}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="last_read" className="block text-sm font-medium text-gray-700">
+                Last Read
+              </label>
+              <input
+                type="date"
+                id="last_read"
+                name="last_read"
+                value={formData.last_read}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="summary" className="block text-sm font-medium text-gray-700">
+              Summary
+            </label>
+            <textarea
+              id="summary"
+              name="summary"
+              rows={3}
+              value={formData.summary}
+              onChange={handleInputChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !formData.title || !formData.current_possessor}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+            >
+              {loading ? 'Saving...' : (book ? 'Update Book' : 'Add Book')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

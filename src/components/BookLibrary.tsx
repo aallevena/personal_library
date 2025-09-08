@@ -1,0 +1,247 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Book } from '../../types/book';
+import BookCard from './BookCard';
+import AddBookForm from './AddBookForm';
+
+interface BookLibraryProps {
+  initialBooks?: Book[];
+}
+
+export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
+  const [books, setBooks] = useState<Book[]>(initialBooks);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [filter, setFilter] = useState<Book['state'] | 'all'>('all');
+
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const fetchBooks = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/books');
+      const data = await response.json();
+      
+      if (data.success) {
+        setBooks(data.books);
+      } else {
+        setError(data.error || 'Failed to fetch books');
+      }
+    } catch (err) {
+      setError('Failed to fetch books');
+      console.error('Error fetching books:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddBook = async (bookData: any) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/books', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookData),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setBooks(prev => [data.book, ...prev]);
+        setShowAddForm(false);
+      } else {
+        setError(data.error || 'Failed to add book');
+      }
+    } catch (err) {
+      setError('Failed to add book');
+      console.error('Error adding book:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditBook = async (bookData: any) => {
+    if (!editingBook) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/books/${editingBook.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookData),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setBooks(prev => prev.map(book => 
+          book.id === editingBook.id ? data.book : book
+        ));
+        setEditingBook(null);
+      } else {
+        setError(data.error || 'Failed to update book');
+      }
+    } catch (err) {
+      setError('Failed to update book');
+      console.error('Error updating book:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteBook = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this book?')) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/books/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setBooks(prev => prev.filter(book => book.id !== id));
+      } else {
+        setError(data.error || 'Failed to delete book');
+      }
+    } catch (err) {
+      setError('Failed to delete book');
+      console.error('Error deleting book:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: Book['state']) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/books/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ state: newStatus }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setBooks(prev => prev.map(book => 
+          book.id === id ? { ...book, state: newStatus } : book
+        ));
+      } else {
+        setError(data.error || 'Failed to update book status');
+      }
+    } catch (err) {
+      setError('Failed to update book status');
+      console.error('Error updating book status:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredBooks = filter === 'all' 
+    ? books 
+    : books.filter(book => book.state === filter);
+
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Personal Library</h1>
+        
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+            >
+              Add Book
+            </button>
+            
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as Book['state'] | 'all')}
+              className="border border-gray-300 rounded-lg px-3 py-2"
+            >
+              <option value="all">All Books</option>
+              <option value="In library">In Library</option>
+              <option value="Checked out">Checked Out</option>
+              <option value="Lost">Lost</option>
+            </select>
+          </div>
+
+          <div className="text-sm text-gray-600">
+            {filteredBooks.length} {filteredBooks.length === 1 ? 'book' : 'books'}
+            {filter !== 'all' && ` (${filter.toLowerCase()})`}
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="mb-6 p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg">
+          Loading...
+        </div>
+      )}
+
+      {filteredBooks.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <div className="text-gray-400 text-6xl mb-4">📚</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {filter === 'all' ? 'No books yet' : `No ${filter.toLowerCase()} books`}
+          </h3>
+          <p className="text-gray-600">
+            {filter === 'all' 
+              ? 'Get started by adding your first book!' 
+              : `Try selecting a different filter or add some books.`
+            }
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredBooks.map((book) => (
+          <BookCard
+            key={book.id}
+            book={book}
+            onEdit={setEditingBook}
+            onDelete={handleDeleteBook}
+            onUpdateStatus={handleUpdateStatus}
+          />
+        ))}
+      </div>
+
+      {(showAddForm || editingBook) && (
+        <AddBookForm
+          book={editingBook}
+          onSubmit={editingBook ? handleEditBook : handleAddBook}
+          onCancel={() => {
+            setShowAddForm(false);
+            setEditingBook(null);
+          }}
+          loading={loading}
+        />
+      )}
+    </div>
+  );
+}

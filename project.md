@@ -1,6 +1,6 @@
 I would like us to build a web app to store my personal library of books. This web app will consist of a database layer and a front-end. I want to keep the code/deployment surface as simple as possible as this is just a project for my family to use. 
 
-Some requets
+Some requests
 - I want to take advantage of Vercel's free tier. So I want the app to deploy there via github. I can manage the connection between github and vercel so don't worry about that. I would like to use react for the front end but I could be convinced to use Next if you think better. However, in either case lets use typescript. 
 - I will need a DB to store this info. Vercel has from free offerings - Lets consider those. Even a SQLite approach at first would be OK but I want to avoid that.
 
