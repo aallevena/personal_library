@@ -87,7 +87,7 @@ export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated
 export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 'created_at' | 'updated_at'>>): Promise<Book> {
   try {
     const setParts: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | Date)[] = [];
     let valueIndex = 1;
 
     Object.entries(updates).forEach(([key, value]) => {

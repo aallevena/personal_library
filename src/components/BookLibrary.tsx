@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Book } from '../../types/book';
+import { Book, BookFormData } from '../../types/book';
 import BookCard from './BookCard';
 import AddBookForm from './AddBookForm';
 
@@ -41,7 +41,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     }
   };
 
-  const handleAddBook = async (bookData: any) => {
+  const handleAddBook = async (bookData: BookFormData) => {
     setLoading(true);
     setError(null);
     try {
@@ -69,7 +69,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     }
   };
 
-  const handleEditBook = async (bookData: any) => {
+  const handleEditBook = async (bookData: BookFormData) => {
     if (!editingBook) return;
     
     setLoading(true);
