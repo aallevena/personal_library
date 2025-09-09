@@ -43,7 +43,7 @@ class OpenLibraryService {
       const bookData: OpenLibraryBook = await response.json();
       
       // Extract and format the book information
-      const book = this.formatBookData(bookData, cleanISBN);
+      const book = await this.formatBookData(bookData, cleanISBN);
       
       return {
         success: true,
@@ -59,19 +59,12 @@ class OpenLibraryService {
     }
   }
 
-  private formatBookData(data: OpenLibraryBook, isbn: string) {
+  private async formatBookData(data: OpenLibraryBook, isbn: string) {
     // Extract title
     const title = data.title || 'Unknown Title';
 
     // Extract authors - handle different possible formats
-    let author = 'Unknown Author';
-    if (data.authors && data.authors.length > 0) {
-      if (typeof data.authors[0] === 'string') {
-        author = data.authors[0] as string;
-      } else if (data.authors[0].name) {
-        author = data.authors[0].name;
-      }
-    }
+    let author = await this.extractAuthors(data.authors);
 
     // Extract publish date
     const publish_date = data.publish_date || undefined;
@@ -93,6 +86,71 @@ class OpenLibraryService {
       summary,
       isbn
     };
+  }
+
+  private async extractAuthors(authors?: Array<{ key?: string; name?: string } | string>): Promise<string> {
+    if (!authors || authors.length === 0) {
+      return 'Unknown Author';
+    }
+
+    const authorPromises: Promise<string>[] = [];
+    const maxAuthors = Math.min(4, authors.length);
+
+    for (let i = 0; i < maxAuthors; i++) {
+      const authorData = authors[i];
+      
+      if (typeof authorData === 'string') {
+        // Direct author name
+        authorPromises.push(Promise.resolve(authorData));
+      } else if (authorData.name) {
+        // Author object with name
+        authorPromises.push(Promise.resolve(authorData.name));
+      } else if (authorData.key) {
+        // Author reference key - need to fetch
+        authorPromises.push(this.fetchAuthorName(authorData.key));
+      }
+    }
+
+    try {
+      // Wait for all author lookups with 1.5 second timeout
+      const authorNames = await Promise.all(
+        authorPromises.map(promise => 
+          Promise.race([
+            promise,
+            new Promise<string>((_, reject) => 
+              setTimeout(() => reject(new Error('Author lookup timeout')), 1500)
+            )
+          ]).catch(() => 'Unknown Author')
+        )
+      );
+
+      const validAuthors = authorNames.filter(name => name && name !== 'Unknown Author');
+      return validAuthors.length > 0 ? validAuthors.join(', ') : 'Unknown Author';
+      
+    } catch (error) {
+      console.error('Error extracting authors:', error);
+      return 'Unknown Author';
+    }
+  }
+
+  private async fetchAuthorName(authorKey: string): Promise<string> {
+    try {
+      // Clean up the key (remove leading slash if present)
+      const cleanKey = authorKey.startsWith('/') ? authorKey.substring(1) : authorKey;
+      
+      const response = await fetch(`${this.baseUrl}/${cleanKey}.json`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch author: ${response.status}`);
+      }
+      
+      const authorData = await response.json();
+      return authorData.name || authorData.personal_name || 'Unknown Author';
+      
+    } catch (error) {
+      console.error(`Error fetching author ${authorKey}:`, error);
+      return 'Unknown Author';
+    }
   }
 
   private isValidISBN(isbn: string): boolean {
