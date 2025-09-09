@@ -24,7 +24,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
     return digits.length === 10 || digits.length === 13;
   };
 
-  const handleScanSuccess = (decodedText: string, decodedResult: Html5QrcodeResult) => {
+  const handleScanSuccess = (decodedText: string) => {
     console.log('Scanned code:', decodedText);
     
     // Stop the scanner
@@ -107,7 +107,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
     return () => {
       stopScanner();
     };
-  }, [isOpen]);
+  }, [isOpen, startScanner]);
 
   const handleClose = () => {
     stopScanner();
@@ -158,7 +158,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
             <>
               <div className="mb-4">
                 <p className="text-sm text-gray-600 text-center mb-4">
-                  Position the book's barcode in the center of the camera view
+                  Position the book&apos;s barcode in the center of the camera view
                 </p>
                 {isScanning && (
                   <div className="text-center">
