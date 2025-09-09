@@ -27,13 +27,21 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
   const handleScanSuccess = (decodedText: string) => {
     console.log('Scanned code:', decodedText);
     
-    // Stop the scanner
+    // Stop the scanner first
+    setIsScanning(false);
+    
     if (scannerRef.current) {
-      scannerRef.current.clear().then(() => {
+      try {
+        scannerRef.current.clear().then(() => {
+          scannerRef.current = null;
+        }).catch((err) => {
+          console.warn('Scanner cleanup after success:', err);
+          scannerRef.current = null;
+        });
+      } catch (error) {
+        console.warn('Scanner cleanup error:', error);
         scannerRef.current = null;
-      }).catch((err) => {
-        console.error('Error clearing scanner:', err);
-      });
+      }
     }
 
     // Validate if the scanned code looks like an ISBN
@@ -84,13 +92,22 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
 
   const stopScanner = () => {
     if (scannerRef.current) {
-      scannerRef.current.clear().then(() => {
+      try {
+        scannerRef.current.clear().then(() => {
+          scannerRef.current = null;
+          setIsScanning(false);
+        }).catch((err) => {
+          // Ignore cleanup errors - they're usually harmless DOM issues
+          console.warn('Scanner cleanup warning:', err);
+          scannerRef.current = null;
+          setIsScanning(false);
+        });
+      } catch (error) {
+        // Handle synchronous errors
+        console.warn('Scanner cleanup error:', error);
         scannerRef.current = null;
         setIsScanning(false);
-      }).catch((err) => {
-        console.error('Error stopping scanner:', err);
-        setIsScanning(false);
-      });
+      }
     } else {
       setIsScanning(false);
     }
@@ -111,7 +128,10 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
 
   const handleClose = () => {
     stopScanner();
-    onClose();
+    // Small delay to ensure scanner is cleaned up before closing
+    setTimeout(() => {
+      onClose();
+    }, 100);
   };
 
   const handleRetry = () => {
