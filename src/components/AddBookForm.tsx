@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Book, BookFormData } from '../../types/book';
+import BarcodeScanner from './BarcodeScanner';
 
 interface AddBookFormProps {
   book?: Book | null;
@@ -27,6 +28,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
     loading: false,
     error: null as string | null,
   });
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
     if (book) {
@@ -81,6 +83,42 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
     }
   };
 
+  const handleScanSuccess = (isbn: string) => {
+    // Update the ISBN field with scanned value
+    setFormData(prev => ({ ...prev, isbn }));
+    // Automatically trigger ISBN lookup
+    setTimeout(async () => {
+      if (!isbn) return;
+      
+      setIsbnLookup({ loading: true, error: null });
+      
+      try {
+        const response = await fetch(`/api/isbn/${isbn}`);
+        const data = await response.json();
+        
+        if (data.success && data.book) {
+          setFormData(prev => ({
+            ...prev,
+            title: data.book.title || prev.title,
+            author: data.book.author || prev.author,
+            publish_date: data.book.publish_date || prev.publish_date,
+            summary: data.book.summary || prev.summary,
+          }));
+          setIsbnLookup({ loading: false, error: null });
+        } else {
+          setIsbnLookup({ loading: false, error: data.error || 'Book not found' });
+        }
+      } catch (error) {
+        setIsbnLookup({ loading: false, error: 'Failed to lookup book' });
+        console.error('ISBN lookup error:', error);
+      }
+    }, 100);
+  };
+
+  const handleScanError = (error: string) => {
+    setIsbnLookup({ loading: false, error });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -102,6 +140,21 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
+            </button>
+          </div>
+
+          {/* Barcode Scanner Button */}
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => setScannerOpen(true)}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              📷 Scan Barcode
             </button>
           </div>
 
@@ -279,6 +332,13 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
           </div>
         </form>
       </div>
+
+      <BarcodeScanner
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScanSuccess={handleScanSuccess}
+        onError={handleScanError}
+      />
     </div>
   );
 }
