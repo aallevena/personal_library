@@ -90,11 +90,17 @@ CREATE TABLE books (
 - **Database**: Neon PostgreSQL with connection pooling
 
 ---
+## Completed Tickets: 
+PL-1 #bug Add book: Author field isn't autopopulating from the API ✅
+
 
 ## Feature Backlog
 
 ### New Features Pipeline
 *Use PL-XXX format for ticket tracking (e.g., PL-001, PL-002)*
+PL-2 #bug Add book: If either date field is left blank then the form returns an error. Blank fields should be allowed. 
+Pl-3 #bug Overall: On a browser's dark mode all input text is hard to read. 
+Pl-4 #feature Add book: When I add a book, next to the ISBN lookup button I'd like to use my camera to read the barcode and pull ISBN number automatically. 
 
 **Pending Implementation:**
 

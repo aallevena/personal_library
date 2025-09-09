@@ -10,7 +10,15 @@
       "Bash(taskkill:*)",
       "Bash(curl:*)",
       "Bash(git commit:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(tasklist:*)",
+      "Bash(cmd /c:*)",
+      "Bash(wmic:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx next:*)",
+      "WebFetch(domain:personal-library-flax.vercel.app)",
+      "WebFetch(domain:openlibrary.org)"
     ],
     "deny": [],
     "ask": []

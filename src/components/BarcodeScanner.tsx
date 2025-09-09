@@ -14,6 +14,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [scannerId] = useState(() => `barcode-scanner-${Date.now()}`);
 
   const validateISBN = (code: string): boolean => {
     // Clean the code (remove hyphens and spaces)
@@ -69,7 +70,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
 
     try {
       const scanner = new Html5QrcodeScanner(
-        'barcode-scanner',
+        scannerId,
         {
           fps: 10,
           qrbox: { width: 250, height: 150 },
@@ -107,6 +108,11 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
         console.warn('Scanner cleanup error:', error);
         scannerRef.current = null;
         setIsScanning(false);
+        // Clear the container as final cleanup
+        const container = document.getElementById(scannerId);
+        if (container) {
+          container.innerHTML = '';
+        }
       }
     } else {
       setIsScanning(false);
@@ -194,7 +200,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
               </div>
 
               <div 
-                id="barcode-scanner" 
+                id={scannerId} 
                 className="w-full bg-gray-100 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center"
                 style={{ minHeight: '300px' }}
               >
