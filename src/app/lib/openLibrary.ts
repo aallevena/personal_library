@@ -64,7 +64,7 @@ class OpenLibraryService {
     const title = data.title || 'Unknown Title';
 
     // Extract authors - handle different possible formats
-    let author = await this.extractAuthors(data.authors);
+    const author = await this.extractAuthors(data.authors);
 
     // Extract publish date
     const publish_date = data.publish_date || undefined;
