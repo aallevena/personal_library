@@ -92,6 +92,7 @@ CREATE TABLE books (
 ---
 ## Completed Tickets:
 PL-1 #bug Add book: Author field isn't autopopulating from the API ✅
+PL-3 #bug Overall: On a browser's dark mode all input text is hard to read ✅
 PL-4 #feature Add book: Camera barcode scanning for ISBN lookup ✅
 
 
@@ -100,7 +101,6 @@ PL-4 #feature Add book: Camera barcode scanning for ISBN lookup ✅
 ### New Features Pipeline
 *Use PL-XXX format for ticket tracking (e.g., PL-001, PL-002)*
 PL-2 #bug Add book: If either date field is left blank then the form returns an error. Blank fields should be allowed.
-PL-3 #bug Overall: On a browser's dark mode all input text is hard to read.
 PL-5 #tech-debt Barcode Scanner: Remove timer-based workarounds in BarcodeScanner component. Replace setTimeout delays with proper React lifecycle hooks and state management to eliminate race conditions between React rendering and html5-qrcode library initialization.
 
 **Pending Implementation:**
