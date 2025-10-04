@@ -37,7 +37,13 @@ npm install
 
 ### 2. Environment Setup
 
-Create a `.env.local` file in the root directory:
+Copy the example environment file and configure it:
+
+```bash
+cp .env.example .env.local
+```
+
+Then edit `.env.local` with your database credentials:
 
 ```env
 # Database
@@ -77,6 +83,16 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:3000`.
+
+### 5. Initialize Database
+
+After starting the dev server, seed the database by visiting:
+
+```
+http://localhost:3000/api/init
+```
+
+This will create the necessary database tables and initial data.
 
 ## Available Scripts
 

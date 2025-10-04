@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeScanType, Html5QrcodeResult } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface BarcodeScannerProps {
   isOpen: boolean;
@@ -11,7 +11,8 @@ interface BarcodeScannerProps {
 }
 
 export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError }: BarcodeScannerProps) {
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const cleanupInProgressRef = useRef(false);
   const [isScanning, setIsScanning] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [scannerId] = useState(() => `barcode-scanner-${Date.now()}`);
@@ -25,25 +26,11 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
     return digits.length === 10 || digits.length === 13;
   };
 
-  const handleScanSuccess = (decodedText: string) => {
+  const handleScanSuccess = async (decodedText: string) => {
     console.log('Scanned code:', decodedText);
-    
+
     // Stop the scanner first
-    setIsScanning(false);
-    
-    if (scannerRef.current) {
-      try {
-        scannerRef.current.clear().then(() => {
-          scannerRef.current = null;
-        }).catch((err) => {
-          console.warn('Scanner cleanup after success:', err);
-          scannerRef.current = null;
-        });
-      } catch (error) {
-        console.warn('Scanner cleanup error:', error);
-        scannerRef.current = null;
-      }
-    }
+    await stopScanner();
 
     // Validate if the scanned code looks like an ISBN
     if (validateISBN(decodedText)) {
@@ -55,89 +42,108 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
     }
   };
 
-  const handleScanFailure = (error: string) => {
-    // Don't log every scan attempt failure - it's normal
-    if (!error.includes('No MultiFormat Readers were able to detect the code')) {
-      console.error('Scan failure:', error);
-    }
-  };
-
-  const startScanner = () => {
+  const startScanner = async () => {
     if (scannerRef.current) return;
 
-    setIsScanning(true);
     setPermissionError(null);
+    setIsScanning(true);
+
+    // Wait a bit for React to finish rendering
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Check if container exists in DOM before proceeding
+    const container = document.getElementById(scannerId);
+    if (!container) {
+      console.error('Scanner container not found in DOM');
+      setPermissionError('Scanner initialization failed. Please try again.');
+      setIsScanning(false);
+      return;
+    }
 
     try {
-      const scanner = new Html5QrcodeScanner(
-        scannerId,
+      const scanner = new Html5Qrcode(scannerId);
+      scannerRef.current = scanner;
+
+      // Get available cameras
+      const devices = await Html5Qrcode.getCameras();
+      if (!devices || devices.length === 0) {
+        throw new Error('No cameras found');
+      }
+
+      // Use the first available camera (or back camera if available)
+      const cameraId = devices[0].id;
+
+      // Start scanning with camera ID instead of facingMode
+      await scanner.start(
+        cameraId,
         {
           fps: 10,
-          qrbox: { width: 250, height: 150 },
-          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-          showTorchButtonIfSupported: true,
-          showZoomSliderIfSupported: true,
-          defaultZoomValueIfSupported: 1,
+          qrbox: { width: 250, height: 150 }
         },
-        false
+        (decodedText) => {
+          handleScanSuccess(decodedText);
+        },
+        (errorMessage) => {
+          // Ignore - this fires constantly when no barcode is found
+        }
       );
 
-      scannerRef.current = scanner;
-      scanner.render(handleScanSuccess, handleScanFailure);
-    } catch (error) {
+      // Scanner started successfully - isScanning is already true
+    } catch (error: any) {
       console.error('Error starting scanner:', error);
-      setPermissionError('Failed to start camera. Please check your camera permissions.');
+      const errorMsg = error?.message || String(error);
+      if (errorMsg.includes('Permission') || errorMsg.includes('NotAllowed')) {
+        setPermissionError('Camera permission denied. Please allow camera access in your browser settings.');
+      } else if (errorMsg.includes('NotFound') || errorMsg.includes('No cameras')) {
+        setPermissionError('No camera found. Please make sure your device has a camera.');
+      } else {
+        setPermissionError(`Failed to start camera: ${errorMsg}`);
+      }
+      scannerRef.current = null;
       setIsScanning(false);
     }
   };
 
-  const stopScanner = () => {
-    if (scannerRef.current) {
-      try {
-        scannerRef.current.clear().then(() => {
-          scannerRef.current = null;
-          setIsScanning(false);
-        }).catch((err) => {
-          // Ignore cleanup errors - they're usually harmless DOM issues
-          console.warn('Scanner cleanup warning:', err);
-          scannerRef.current = null;
-          setIsScanning(false);
-        });
-      } catch (error) {
-        // Handle synchronous errors
-        console.warn('Scanner cleanup error:', error);
-        scannerRef.current = null;
-        setIsScanning(false);
-        // Clear the container as final cleanup
-        const container = document.getElementById(scannerId);
-        if (container) {
-          container.innerHTML = '';
-        }
-      }
-    } else {
+  const stopScanner = async () => {
+    if (!scannerRef.current || cleanupInProgressRef.current) {
       setIsScanning(false);
+      return;
+    }
+
+    cleanupInProgressRef.current = true;
+    const scanner = scannerRef.current;
+    scannerRef.current = null;
+    setIsScanning(false);
+
+    try {
+      if (scanner.isScanning) {
+        await scanner.stop();
+      }
+    } catch (error) {
+      console.debug('Scanner stop error:', error);
+    } finally {
+      cleanupInProgressRef.current = false;
     }
   };
 
   useEffect(() => {
-    if (isOpen) {
-      startScanner();
-    } else {
-      stopScanner();
-    }
+    // Don't auto-start scanner - let user click a button instead
+    // This helps debug if the issue is with modal or scanner
 
-    // Cleanup on unmount
+    // Cleanup on unmount or when closing
     return () => {
-      stopScanner();
+      if (scannerRef.current) {
+        stopScanner();
+      }
     };
-  }, [isOpen, startScanner]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
-  const handleClose = () => {
-    stopScanner();
-    // Small delay to ensure scanner is cleaned up before closing
-    setTimeout(() => {
-      onClose();
-    }, 100);
+  const handleClose = async () => {
+    await stopScanner();
+    // Wait a tick for any pending DOM operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    onClose();
   };
 
   const handleRetry = () => {
@@ -145,10 +151,8 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
     startScanner();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+    <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 ${!isOpen ? 'hidden' : ''}`}>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
@@ -186,6 +190,18 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
                 <p className="text-sm text-gray-600 text-center mb-4">
                   Position the book&apos;s barcode in the center of the camera view
                 </p>
+                {!scannerRef.current && (
+                  <div className="text-center mb-4">
+                    <button
+                      onClick={startScanner}
+                      disabled={isScanning}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      type="button"
+                    >
+                      {isScanning ? 'Starting Camera...' : 'Start Camera'}
+                    </button>
+                  </div>
+                )}
                 {isScanning && (
                   <div className="text-center">
                     <div className="inline-flex items-center text-blue-600">
@@ -199,18 +215,18 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
                 )}
               </div>
 
-              <div 
-                id={scannerId} 
+              <div
+                id={scannerId}
                 className="w-full bg-gray-100 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center"
                 style={{ minHeight: '300px' }}
               >
-                {!isScanning && (
+                {!isScanning && !scannerRef.current && (
                   <div className="text-center text-gray-500">
                     <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <p>Initializing camera...</p>
+                    <p>Click &quot;Start Camera&quot; to begin scanning</p>
                   </div>
                 )}
               </div>
