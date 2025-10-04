@@ -89,9 +89,9 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
       );
 
       // Scanner started successfully - isScanning is already true
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error starting scanner:', error);
-      const errorMsg = error?.message || String(error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
       if (errorMsg.includes('Permission') || errorMsg.includes('NotAllowed')) {
         setPermissionError('Camera permission denied. Please allow camera access in your browser settings.');
       } else if (errorMsg.includes('NotFound') || errorMsg.includes('No cameras')) {
