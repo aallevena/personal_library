@@ -78,8 +78,8 @@ export async function initializeDatabase() {
 export async function getAllBooks(): Promise<Book[]> {
   try {
     if (USE_SQLITE && db) {
-      const rows = db.prepare('SELECT * FROM books ORDER BY created_at DESC').all();
-      return rows.map(row => ({ ...row, id: String(row.id) })) as Book[];
+      const rows = db.prepare('SELECT * FROM books ORDER BY created_at DESC').all() as Array<Omit<Book, 'id'> & { id: number }>;
+      return rows.map(row => ({ ...row, id: String(row.id) }));
     }
     const { rows } = await sql<Book>`SELECT * FROM books ORDER BY created_at DESC`;
     return rows;
@@ -92,8 +92,8 @@ export async function getAllBooks(): Promise<Book[]> {
 export async function getBookById(id: string): Promise<Book | null> {
   try {
     if (USE_SQLITE && db) {
-      const row = db.prepare('SELECT * FROM books WHERE id = ?').get(id);
-      return row ? { ...row, id: String(row.id) } as Book : null;
+      const row = db.prepare('SELECT * FROM books WHERE id = ?').get(id) as (Omit<Book, 'id'> & { id: number }) | undefined;
+      return row ? { ...row, id: String(row.id) } : null;
     }
     const { rows } = await sql<Book>`SELECT * FROM books WHERE id = ${id}`;
     return rows[0] || null;
@@ -115,8 +115,8 @@ export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated
         book.state, book.current_possessor, book.times_read,
         book.last_read, book.date_added, book.isbn
       );
-      const newBook = db.prepare('SELECT * FROM books WHERE id = ?').get(result.lastInsertRowid);
-      return { ...newBook, id: String(newBook.id) } as Book;
+      const newBook = db.prepare('SELECT * FROM books WHERE id = ?').get(result.lastInsertRowid) as Omit<Book, 'id'> & { id: number };
+      return { ...newBook, id: String(newBook.id) };
     }
     const { rows } = await sql<Book>`
       INSERT INTO books (
@@ -158,8 +158,8 @@ export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 
 
       const query = `UPDATE books SET ${setParts.join(', ')} WHERE id = ?`;
       db.prepare(query).run(...values);
-      const updated = db.prepare('SELECT * FROM books WHERE id = ?').get(id);
-      return { ...updated, id: String(updated.id) } as Book;
+      const updated = db.prepare('SELECT * FROM books WHERE id = ?').get(id) as Omit<Book, 'id'> & { id: number };
+      return { ...updated, id: String(updated.id) };
     }
 
     const setParts: string[] = [];
@@ -213,8 +213,8 @@ export async function deleteBook(id: string): Promise<boolean> {
 export async function getBooksByState(state: Book['state']): Promise<Book[]> {
   try {
     if (USE_SQLITE && db) {
-      const rows = db.prepare('SELECT * FROM books WHERE state = ? ORDER BY created_at DESC').all(state);
-      return rows.map(row => ({ ...row, id: String(row.id) })) as Book[];
+      const rows = db.prepare('SELECT * FROM books WHERE state = ? ORDER BY created_at DESC').all(state) as Array<Omit<Book, 'id'> & { id: number }>;
+      return rows.map(row => ({ ...row, id: String(row.id) }));
     }
     const { rows } = await sql<Book>`
       SELECT * FROM books
