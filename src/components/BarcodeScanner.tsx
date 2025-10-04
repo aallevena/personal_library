@@ -70,8 +70,13 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess, onError
         throw new Error('No cameras found');
       }
 
-      // Use the first available camera (or back camera if available)
-      const cameraId = devices[0].id;
+      // Prefer back camera (environment-facing) over front camera
+      const backCamera = devices.find(device =>
+        device.label.toLowerCase().includes('back') ||
+        device.label.toLowerCase().includes('rear') ||
+        device.label.toLowerCase().includes('environment')
+      );
+      const cameraId = backCamera ? backCamera.id : devices[devices.length - 1].id;
 
       // Start scanning with camera ID instead of facingMode
       await scanner.start(
