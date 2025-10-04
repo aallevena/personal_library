@@ -171,7 +171,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
                 value={formData.isbn}
                 onChange={handleInputChange}
                 placeholder="Enter ISBN to auto-fill book details"
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <button
                 type="button"
@@ -200,7 +200,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
                 required
                 value={formData.title}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -214,7 +214,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
                 name="author"
                 value={formData.author}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -228,7 +228,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
                 required
                 value={formData.state}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="In library">In library</option>
                 <option value="Checked out">Checked out</option>
@@ -248,7 +248,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
                 value={formData.current_possessor}
                 onChange={handleInputChange}
                 placeholder="e.g., Tony, Sarah, etc."
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
                 name="publish_date"
                 value={formData.publish_date}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -280,7 +280,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
                 min="0"
                 value={formData.times_read}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -294,7 +294,7 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
                 name="last_read"
                 value={formData.last_read}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>

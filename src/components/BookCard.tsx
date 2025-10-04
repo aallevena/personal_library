@@ -64,7 +64,7 @@ export default function BookCard({ book, onEdit, onDelete, onUpdateStatus }: Boo
           <select
             value={book.state}
             onChange={(e) => onUpdateStatus(book.id, e.target.value as Book['state'])}
-            className="text-xs border border-gray-300 rounded px-2 py-1"
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-900"
           >
             <option value="In library">In library</option>
             <option value="Checked out">Checked out</option>

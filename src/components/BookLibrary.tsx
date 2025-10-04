@@ -176,7 +176,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as Book['state'] | 'all')}
-              className="border border-gray-300 rounded-lg px-3 py-2"
+              className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900"
             >
               <option value="all">All Books</option>
               <option value="In library">In Library</option>
