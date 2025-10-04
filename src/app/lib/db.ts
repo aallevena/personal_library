@@ -1,4 +1,15 @@
 import { sql } from '@vercel/postgres';
+import Database from 'better-sqlite3';
+import path from 'path';
+
+const USE_SQLITE = process.env.USE_SQLITE === 'true';
+let db: Database.Database | null = null;
+
+if (USE_SQLITE) {
+  const dbPath = path.join(process.cwd(), 'local.db');
+  db = new Database(dbPath);
+  db.pragma('journal_mode = WAL');
+}
 
 export interface Book {
   id: string;
@@ -18,25 +29,45 @@ export interface Book {
 
 export async function initializeDatabase() {
   try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS books (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        title TEXT NOT NULL,
-        author TEXT,
-        publish_date DATE,
-        summary TEXT,
-        state TEXT NOT NULL CHECK (state IN ('In library', 'Checked out', 'Lost')),
-        current_possessor TEXT NOT NULL,
-        times_read INTEGER DEFAULT 0,
-        last_read DATE,
-        date_added DATE NOT NULL DEFAULT CURRENT_DATE,
-        isbn TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-    
-    console.log('Database initialized successfully');
+    if (USE_SQLITE && db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS books (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          author TEXT,
+          publish_date TEXT,
+          summary TEXT,
+          state TEXT NOT NULL CHECK (state IN ('In library', 'Checked out', 'Lost')),
+          current_possessor TEXT NOT NULL,
+          times_read INTEGER DEFAULT 0,
+          last_read TEXT,
+          date_added TEXT NOT NULL DEFAULT (date('now')),
+          isbn TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        )
+      `);
+    } else {
+      await sql`
+        CREATE TABLE IF NOT EXISTS books (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          title TEXT NOT NULL,
+          author TEXT,
+          publish_date DATE,
+          summary TEXT,
+          state TEXT NOT NULL CHECK (state IN ('In library', 'Checked out', 'Lost')),
+          current_possessor TEXT NOT NULL,
+          times_read INTEGER DEFAULT 0,
+          last_read DATE,
+          date_added DATE NOT NULL DEFAULT CURRENT_DATE,
+          isbn TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+    }
+
+    console.log(`Database initialized successfully (${USE_SQLITE ? 'SQLite' : 'Postgres'})`);
     return { success: true };
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -46,6 +77,10 @@ export async function initializeDatabase() {
 
 export async function getAllBooks(): Promise<Book[]> {
   try {
+    if (USE_SQLITE && db) {
+      const rows = db.prepare('SELECT * FROM books ORDER BY created_at DESC').all();
+      return rows.map(row => ({ ...row, id: String(row.id) })) as Book[];
+    }
     const { rows } = await sql<Book>`SELECT * FROM books ORDER BY created_at DESC`;
     return rows;
   } catch (error) {
@@ -56,6 +91,10 @@ export async function getAllBooks(): Promise<Book[]> {
 
 export async function getBookById(id: string): Promise<Book | null> {
   try {
+    if (USE_SQLITE && db) {
+      const row = db.prepare('SELECT * FROM books WHERE id = ?').get(id);
+      return row ? { ...row, id: String(row.id) } as Book : null;
+    }
     const { rows } = await sql<Book>`SELECT * FROM books WHERE id = ${id}`;
     return rows[0] || null;
   } catch (error) {
@@ -66,15 +105,28 @@ export async function getBookById(id: string): Promise<Book | null> {
 
 export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated_at'>): Promise<Book> {
   try {
+    if (USE_SQLITE && db) {
+      const stmt = db.prepare(`
+        INSERT INTO books (title, author, publish_date, summary, state, current_possessor, times_read, last_read, date_added, isbn)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      const result = stmt.run(
+        book.title, book.author, book.publish_date, book.summary,
+        book.state, book.current_possessor, book.times_read,
+        book.last_read, book.date_added, book.isbn
+      );
+      const newBook = db.prepare('SELECT * FROM books WHERE id = ?').get(result.lastInsertRowid);
+      return { ...newBook, id: String(newBook.id) } as Book;
+    }
     const { rows } = await sql<Book>`
       INSERT INTO books (
-        title, author, publish_date, summary, state, 
+        title, author, publish_date, summary, state,
         current_possessor, times_read, last_read, date_added, isbn
       ) VALUES (
-        ${book.title}, ${book.author}, ${book.publish_date}, ${book.summary}, 
-        ${book.state}, ${book.current_possessor}, ${book.times_read}, 
+        ${book.title}, ${book.author}, ${book.publish_date}, ${book.summary},
+        ${book.state}, ${book.current_possessor}, ${book.times_read},
         ${book.last_read}, ${book.date_added}, ${book.isbn}
-      ) 
+      )
       RETURNING *
     `;
     return rows[0];
@@ -86,6 +138,30 @@ export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated
 
 export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 'created_at' | 'updated_at'>>): Promise<Book> {
   try {
+    if (USE_SQLITE && db) {
+      const setParts: string[] = [];
+      const values: unknown[] = [];
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          setParts.push(`${key} = ?`);
+          values.push(value);
+        }
+      });
+
+      if (setParts.length === 0) {
+        throw new Error('No fields to update');
+      }
+
+      setParts.push(`updated_at = datetime('now')`);
+      values.push(id);
+
+      const query = `UPDATE books SET ${setParts.join(', ')} WHERE id = ?`;
+      db.prepare(query).run(...values);
+      const updated = db.prepare('SELECT * FROM books WHERE id = ?').get(id);
+      return { ...updated, id: String(updated.id) } as Book;
+    }
+
     const setParts: string[] = [];
     const values: (string | number | Date)[] = [];
     let valueIndex = 1;
@@ -103,11 +179,11 @@ export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 
     }
 
     setParts.push(`updated_at = CURRENT_TIMESTAMP`);
-    
+
     const query = `
-      UPDATE books 
-      SET ${setParts.join(', ')} 
-      WHERE id = $${valueIndex} 
+      UPDATE books
+      SET ${setParts.join(', ')}
+      WHERE id = $${valueIndex}
       RETURNING *
     `;
     values.push(id);
@@ -122,6 +198,10 @@ export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 
 
 export async function deleteBook(id: string): Promise<boolean> {
   try {
+    if (USE_SQLITE && db) {
+      const result = db.prepare('DELETE FROM books WHERE id = ?').run(id);
+      return result.changes > 0;
+    }
     const { rowCount } = await sql`DELETE FROM books WHERE id = ${id}`;
     return (rowCount ?? 0) > 0;
   } catch (error) {
@@ -132,9 +212,13 @@ export async function deleteBook(id: string): Promise<boolean> {
 
 export async function getBooksByState(state: Book['state']): Promise<Book[]> {
   try {
+    if (USE_SQLITE && db) {
+      const rows = db.prepare('SELECT * FROM books WHERE state = ? ORDER BY created_at DESC').all(state);
+      return rows.map(row => ({ ...row, id: String(row.id) })) as Book[];
+    }
     const { rows } = await sql<Book>`
-      SELECT * FROM books 
-      WHERE state = ${state} 
+      SELECT * FROM books
+      WHERE state = ${state}
       ORDER BY created_at DESC
     `;
     return rows;
