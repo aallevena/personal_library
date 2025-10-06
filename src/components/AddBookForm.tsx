@@ -6,12 +6,11 @@ import BarcodeScanner from './BarcodeScanner';
 
 interface AddBookFormProps {
   book?: Book | null;
-  onSubmit: (data: BookFormData) => void;
+  onSuccess: (book: Book) => void;
   onCancel: () => void;
-  loading: boolean;
 }
 
-export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBookFormProps) {
+export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormProps) {
   const [formData, setFormData] = useState<BookFormData>({
     title: '',
     author: '',
@@ -28,6 +27,8 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
     loading: false,
     error: null as string | null,
   });
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
@@ -119,9 +120,45 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
     setIsbnLookup({ loading: false, error });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    setSubmitError(null);
+    setSubmitting(true);
+
+    try {
+      const url = book ? `/api/books/${book.id}` : '/api/books';
+      const method = book ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        onSuccess(data.book);
+      } else {
+        // Check if it's a 4xx or 5xx error
+        if (response.status >= 400 && response.status < 500) {
+          // Client error - show specific error message
+          setSubmitError(data.error || 'Invalid request. Please check your input.');
+        } else if (response.status >= 500) {
+          // Server error - show generic message
+          setSubmitError('Something went wrong. Please try again.');
+        } else {
+          setSubmitError(data.error || 'Failed to save book.');
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting book:', error);
+      setSubmitError('Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -157,6 +194,13 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
               📷 Scan Barcode
             </button>
           </div>
+
+          {/* Submit Error Message */}
+          {submitError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{submitError}</p>
+            </div>
+          )}
 
           {/* ISBN Lookup Section */}
           <div className="space-y-2">
@@ -324,10 +368,10 @@ export default function AddBookForm({ book, onSubmit, onCancel, loading }: AddBo
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.title || !formData.current_possessor}
+              disabled={submitting || !formData.title || !formData.current_possessor}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Saving...' : (book ? 'Update Book' : 'Add Book')}
+              {submitting ? 'Saving...' : (book ? 'Update Book' : 'Add Book')}
             </button>
           </div>
         </form>

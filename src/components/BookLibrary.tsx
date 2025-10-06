@@ -41,64 +41,16 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     }
   };
 
-  const handleAddBook = async (bookData: BookFormData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/books', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bookData),
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setBooks(prev => [data.book, ...prev]);
-        setShowAddForm(false);
-      } else {
-        setError(data.error || 'Failed to add book');
-      }
-    } catch (err) {
-      setError('Failed to add book');
-      console.error('Error adding book:', err);
-    } finally {
-      setLoading(false);
-    }
+  const handleAddBook = (book: Book) => {
+    setBooks(prev => [book, ...prev]);
+    setShowAddForm(false);
   };
 
-  const handleEditBook = async (bookData: BookFormData) => {
-    if (!editingBook) return;
-    
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/books/${editingBook.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bookData),
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setBooks(prev => prev.map(book => 
-          book.id === editingBook.id ? data.book : book
-        ));
-        setEditingBook(null);
-      } else {
-        setError(data.error || 'Failed to update book');
-      }
-    } catch (err) {
-      setError('Failed to update book');
-      console.error('Error updating book:', err);
-    } finally {
-      setLoading(false);
-    }
+  const handleEditBook = (book: Book) => {
+    setBooks(prev => prev.map(b =>
+      b.id === book.id ? book : b
+    ));
+    setEditingBook(null);
   };
 
   const handleDeleteBook = async (id: string) => {
@@ -234,12 +186,11 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
       {(showAddForm || editingBook) && (
         <AddBookForm
           book={editingBook}
-          onSubmit={editingBook ? handleEditBook : handleAddBook}
+          onSuccess={editingBook ? handleEditBook : handleAddBook}
           onCancel={() => {
             setShowAddForm(false);
             setEditingBook(null);
           }}
-          loading={loading}
         />
       )}
     </div>
