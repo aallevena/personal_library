@@ -91,10 +91,11 @@ CREATE TABLE books (
 
 ---
 ## Completed Tickets:
-PL-1 #bug Add book: Author field isn't autopopulating from the API ✅
-PL-3 #bug Overall: On a browser's dark mode all input text is hard to read ✅
-PL-4 #feature Add book: Camera barcode scanning for ISBN lookup ✅
-PL-6 #bug Edit book is broken. Make sure I can increment read count. ✅
+- PL-1 #bug Add book: Author field isn't autopopulating from the API ✅
+- PL-3 #bug Overall: On a browser's dark mode all input text is hard to read ✅
+- PL-4 #feature Add book: Camera barcode scanning for ISBN lookup ✅
+- PL-6 #bug Edit book is broken. Make sure I can increment read count. ✅
+- PL-12 #bug Summary text in edit book modal is too light grey. Make it always same as the above fields (I see black text). ✅
 
 
 ## Feature Backlog
@@ -102,13 +103,12 @@ PL-6 #bug Edit book is broken. Make sure I can increment read count. ✅
 ### New Features Pipeline
 *Use PL-XXX format for ticket tracking (e.g., PL-001, PL-002)*
 - PL-2 #bug Add book: If either date field is left blank then the form returns an error. Blank fields should be allowed.
-- PL-5 #tech-debt Barcode Scanner: Remove timer-based workarounds in BarcodeScanner component. Replace setTimeout delays with proper React lifecycle hooks and state management to eliminate race conditions between React rendering and html5-qrcode library initialization.  
+- PL-5 #tech-debt Barcode Scanner: Remove timer-based workarounds in BarcodeScanner component. Replace setTimeout delays with proper React lifecycle hooks and state management to eliminate race conditions between React rendering and html5-qrcode library initialization.
 - PL-7 #feature FastScan Mode button. Add a button to do fast scanning. Will be to the right of the currently existing Add Book. Will say "Fast Scan: Add Books" A modal will pop up for a user to fill out default fields (Owner, status,etc.), then they click "Fast Scan". Have a checkbox to not add if something is detected as already in the library.  Anytime an ISBN number is detected automatically add it to the library.
-- PL-8 #feature Analytics page - have a page showing total number of books + pie chart of read vs unread and utilization rate (books lent out + books read / total books) 
-- PL-9 #feature Add utilization rate to top of home page above where all the books are listed. 
-- PL-10 #feature Add users. Anyone can create a user, and assign ownership to them. 
+- PL-8 #feature Analytics page - have a page showing total number of books + pie chart of read vs unread and utilization rate (books lent out + books read / total books)
+- PL-9 #feature Add utilization rate to top of home page above where all the books are listed.
+- PL-10 #feature Add users. Anyone can create a user, and assign ownership to them.
 - PL-11 #feature Add user possession view. Page to search by user to see what books they have in their possession right now. 
-- PL-12 #bug Summary text in edit book modal is too light grey. Make it always same as the above fields (I see black text). 
 **Pending Implementation:**
 
 <!-- Add new feature tickets below -->
