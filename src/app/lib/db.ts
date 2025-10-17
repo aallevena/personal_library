@@ -27,6 +27,13 @@ export interface Book {
   updated_at: string;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function initializeDatabase() {
   try {
     if (USE_SQLITE && db) {
@@ -47,6 +54,15 @@ export async function initializeDatabase() {
           updated_at TEXT DEFAULT (datetime('now'))
         )
       `);
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        )
+      `);
     } else {
       await sql`
         CREATE TABLE IF NOT EXISTS books (
@@ -61,6 +77,15 @@ export async function initializeDatabase() {
           last_read DATE,
           date_added DATE NOT NULL DEFAULT CURRENT_DATE,
           isbn TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS users (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -229,6 +254,43 @@ export async function getBooksByState(state: Book['state']): Promise<Book[]> {
     return rows;
   } catch (error) {
     console.error('Error fetching books by state:', error);
+    throw error;
+  }
+}
+
+export async function createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<User> {
+  try {
+    if (USE_SQLITE && db) {
+      const stmt = db.prepare(`
+        INSERT INTO users (name)
+        VALUES (?)
+      `);
+      const result = stmt.run(userData.name);
+      const newUser = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid) as Omit<User, 'id'> & { id: number };
+      return { ...newUser, id: String(newUser.id) };
+    }
+    const { rows } = await sql<User>`
+      INSERT INTO users (name)
+      VALUES (${userData.name})
+      RETURNING *
+    `;
+    return rows[0];
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  try {
+    if (USE_SQLITE && db) {
+      const rows = db.prepare('SELECT * FROM users ORDER BY created_at DESC').all() as Array<Omit<User, 'id'> & { id: number }>;
+      return rows.map(row => ({ ...row, id: String(row.id) }));
+    }
+    const { rows } = await sql<User>`SELECT * FROM users ORDER BY created_at DESC`;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching users:', error);
     throw error;
   }
 }
