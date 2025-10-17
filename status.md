@@ -103,7 +103,7 @@ PL-4 #feature Add book: Camera barcode scanning for ISBN lookup ✅
 - PL-2 #bug Add book: If either date field is left blank then the form returns an error. Blank fields should be allowed.
 - PL-5 #tech-debt Barcode Scanner: Remove timer-based workarounds in BarcodeScanner component. Replace setTimeout delays with proper React lifecycle hooks and state management to eliminate race conditions between React rendering and html5-qrcode library initialization.
 - PL-6 #bug Edit book is broken. Make sure I can increment read count.  
-- PL-7 #feature FastScan Mode button. Add a button to do fast scanning. Anytime an ISBN number is detected automatically add it to the library. For setting up the fast scan, have user be able to add default fields to make fast scan work. (Owner, status,etc.). Have a checkbox to not add if something is detected as already in the library. 
+- PL-7 #feature FastScan Mode button. Add a button to do fast scanning. Will be to the right of the currently existing Add Book. Will say "Fast Scan: Add Books" A modal will pop up for a user to fill out default fields (Owner, status,etc.), then they click "Fast Scan". Have a checkbox to not add if something is detected as already in the library.  Anytime an ISBN number is detected automatically add it to the library.
 - PL-8 #feature Analytics page - have a page showing total number of books + pie chart of read vs unread and utilization rate (books lent out + books read / total books) 
 - PL-9 #feature Add utilization rate to top of home page above where all the books are listed. 
 - PL-10 #feature Add users. Anyone can create a user, and assign ownership to them. 
