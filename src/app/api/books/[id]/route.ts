@@ -83,8 +83,20 @@ export async function PUT(
       );
     }
 
+    // Sanitize the update data - convert empty strings to undefined for optional fields
+    const sanitizedData: Partial<BookFormData> = {};
+    if (body.title !== undefined) sanitizedData.title = body.title;
+    if (body.author !== undefined) sanitizedData.author = body.author?.trim() || undefined;
+    if (body.publish_date !== undefined) sanitizedData.publish_date = body.publish_date?.trim() || undefined;
+    if (body.summary !== undefined) sanitizedData.summary = body.summary?.trim() || undefined;
+    if (body.state !== undefined) sanitizedData.state = body.state;
+    if (body.current_possessor !== undefined) sanitizedData.current_possessor = body.current_possessor;
+    if (body.times_read !== undefined) sanitizedData.times_read = body.times_read;
+    if (body.last_read !== undefined) sanitizedData.last_read = body.last_read?.trim() || undefined;
+    if (body.isbn !== undefined) sanitizedData.isbn = body.isbn?.trim() || undefined;
+
     // Update the book
-    const updatedBook = await updateBook(id, body);
+    const updatedBook = await updateBook(id, sanitizedData);
 
     return NextResponse.json({
       success: true,

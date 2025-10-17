@@ -51,17 +51,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the book with default values for missing fields
+    // Convert empty strings to undefined for optional fields, especially dates
     const bookData = {
       title: body.title,
-      author: body.author || undefined,
-      publish_date: body.publish_date || undefined,
-      summary: body.summary || undefined,
+      author: body.author?.trim() || undefined,
+      publish_date: body.publish_date?.trim() || undefined,
+      summary: body.summary?.trim() || undefined,
       state: body.state,
       current_possessor: body.current_possessor,
       times_read: body.times_read || 0,
-      last_read: body.last_read || undefined,
+      last_read: body.last_read?.trim() || undefined,
       date_added: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
-      isbn: body.isbn || undefined
+      isbn: body.isbn?.trim() || undefined
     };
 
     const newBook = await createBook(bookData);
