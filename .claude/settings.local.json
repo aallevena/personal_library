@@ -18,7 +18,12 @@
       "Bash(npm:*)",
       "Bash(npx next:*)",
       "WebFetch(domain:personal-library-flax.vercel.app)",
-      "WebFetch(domain:openlibrary.org)"
+      "WebFetch(domain:openlibrary.org)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []
