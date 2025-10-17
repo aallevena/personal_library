@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Book, BookFormData } from '../../types/book';
+import { User } from '../../types/user';
 import BookCard from './BookCard';
 import AddBookForm from './AddBookForm';
+import AddUserForm from './AddUserForm';
 
 interface BookLibraryProps {
   initialBooks?: Book[];
@@ -16,6 +18,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [filter, setFilter] = useState<Book['state'] | 'all'>('all');
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
 
   useEffect(() => {
     fetchBooks();
@@ -44,6 +47,13 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const handleAddBook = (book: Book) => {
     setBooks(prev => [book, ...prev]);
     setShowAddForm(false);
+  };
+
+  const handleAddUser = (user: User) => {
+    // User created successfully - just close the modal
+    // In the future, we could display a success message or navigate to a users page
+    setShowAddUserForm(false);
+    console.log('User created:', user);
   };
 
   const handleEditBook = (book: Book) => {
@@ -124,7 +134,14 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
             >
               Add Book
             </button>
-            
+
+            <button
+              onClick={() => setShowAddUserForm(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium"
+            >
+              Add User
+            </button>
+
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as Book['state'] | 'all')}
@@ -191,6 +208,13 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
             setShowAddForm(false);
             setEditingBook(null);
           }}
+        />
+      )}
+
+      {showAddUserForm && (
+        <AddUserForm
+          onSuccess={handleAddUser}
+          onCancel={() => setShowAddUserForm(false)}
         />
       )}
     </div>
