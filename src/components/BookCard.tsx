@@ -73,9 +73,10 @@ export default function BookCard({ book, onEdit, onDelete, onUpdateStatus }: Boo
         </div>
 
         <div className="text-sm text-gray-600">
+          <p><span className="font-medium">Owner:</span> {book.owner}</p>
           <p><span className="font-medium">Current possessor:</span> {book.current_possessor}</p>
           {book.publish_date && (
-            <p><span className="font-medium">Published:</span> {book.publish_date}</p>
+            <p><span className="font-medium">Published:</span> {formatDate(book.publish_date)}</p>
           )}
           {book.isbn && (
             <p><span className="font-medium">ISBN:</span> {book.isbn}</p>

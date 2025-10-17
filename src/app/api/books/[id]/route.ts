@@ -90,6 +90,7 @@ export async function PUT(
     if (body.publish_date !== undefined) sanitizedData.publish_date = body.publish_date?.trim() || undefined;
     if (body.summary !== undefined) sanitizedData.summary = body.summary?.trim() || undefined;
     if (body.state !== undefined) sanitizedData.state = body.state;
+    if (body.owner !== undefined) sanitizedData.owner = body.owner;
     if (body.current_possessor !== undefined) sanitizedData.current_possessor = body.current_possessor;
     if (body.times_read !== undefined) sanitizedData.times_read = body.times_read;
     if (body.last_read !== undefined) sanitizedData.last_read = body.last_read?.trim() || undefined;
