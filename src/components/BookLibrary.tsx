@@ -19,10 +19,26 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [filter, setFilter] = useState<Book['state'] | 'all'>('all');
   const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [ownerFilter, setOwnerFilter] = useState<string>('all');
+  const [possessorFilter, setPossessorFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchBooks();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      const data = await response.json();
+      if (data.success && data.users) {
+        setUsers(data.users);
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
+  };
 
   const fetchBooks = async () => {
     setLoading(true);
@@ -117,9 +133,10 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     }
   };
 
-  const filteredBooks = filter === 'all' 
-    ? books 
-    : books.filter(book => book.state === filter);
+  const filteredBooks = books
+    .filter(book => filter === 'all' || book.state === filter)
+    .filter(book => ownerFilter === 'all' || book.owner === ownerFilter)
+    .filter(book => possessorFilter === 'all' || book.current_possessor === possessorFilter);
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -151,6 +168,32 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
               <option value="In library">In Library</option>
               <option value="Checked out">Checked Out</option>
               <option value="Lost">Lost</option>
+            </select>
+
+            <select
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900"
+            >
+              <option value="all">All Owners</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.name}>
+                  {user.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={possessorFilter}
+              onChange={(e) => setPossessorFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900"
+            >
+              <option value="all">All Possessors</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.name}>
+                  {user.name}
+                </option>
+              ))}
             </select>
           </div>
 

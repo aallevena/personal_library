@@ -28,11 +28,11 @@ export async function POST(request: NextRequest) {
     const body: BookFormData = await request.json();
 
     // Validate required fields
-    if (!body.title || !body.state || !body.current_possessor) {
+    if (!body.title || !body.state || !body.owner || !body.current_possessor) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Missing required fields: title, state, and current_possessor are required' 
+        {
+          success: false,
+          error: 'Missing required fields: title, state, owner, and current_possessor are required'
         },
         { status: 400 }
       );
@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       publish_date: body.publish_date?.trim() || undefined,
       summary: body.summary?.trim() || undefined,
       state: body.state,
+      owner: body.owner,
       current_possessor: body.current_possessor,
       times_read: body.times_read || 0,
       last_read: body.last_read?.trim() || undefined,

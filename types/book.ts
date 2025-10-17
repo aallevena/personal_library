@@ -5,6 +5,7 @@ export interface Book {
   publish_date?: string;
   summary?: string;
   state: 'In library' | 'Checked out' | 'Lost';
+  owner: string;
   current_possessor: string;
   times_read: number;
   last_read?: string;
@@ -20,6 +21,7 @@ export interface BookFormData {
   publish_date?: string;
   summary?: string;
   state: Book['state'];
+  owner: string;
   current_possessor: string;
   times_read: number;
   last_read?: string;

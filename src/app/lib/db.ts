@@ -18,6 +18,7 @@ export interface Book {
   publish_date?: string;
   summary?: string;
   state: 'In library' | 'Checked out' | 'Lost';
+  owner: string;
   current_possessor: string;
   times_read: number;
   last_read?: string;
@@ -45,6 +46,7 @@ export async function initializeDatabase() {
           publish_date TEXT,
           summary TEXT,
           state TEXT NOT NULL CHECK (state IN ('In library', 'Checked out', 'Lost')),
+          owner TEXT NOT NULL,
           current_possessor TEXT NOT NULL,
           times_read INTEGER DEFAULT 0,
           last_read TEXT,
@@ -72,6 +74,7 @@ export async function initializeDatabase() {
           publish_date DATE,
           summary TEXT,
           state TEXT NOT NULL CHECK (state IN ('In library', 'Checked out', 'Lost')),
+          owner TEXT NOT NULL,
           current_possessor TEXT NOT NULL,
           times_read INTEGER DEFAULT 0,
           last_read DATE,
@@ -132,12 +135,12 @@ export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated
   try {
     if (USE_SQLITE && db) {
       const stmt = db.prepare(`
-        INSERT INTO books (title, author, publish_date, summary, state, current_possessor, times_read, last_read, date_added, isbn)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO books (title, author, publish_date, summary, state, owner, current_possessor, times_read, last_read, date_added, isbn)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const result = stmt.run(
         book.title, book.author, book.publish_date, book.summary,
-        book.state, book.current_possessor, book.times_read,
+        book.state, book.owner, book.current_possessor, book.times_read,
         book.last_read, book.date_added, book.isbn
       );
       const newBook = db.prepare('SELECT * FROM books WHERE id = ?').get(result.lastInsertRowid) as Omit<Book, 'id'> & { id: number };
@@ -145,11 +148,11 @@ export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated
     }
     const { rows } = await sql<Book>`
       INSERT INTO books (
-        title, author, publish_date, summary, state,
+        title, author, publish_date, summary, state, owner,
         current_possessor, times_read, last_read, date_added, isbn
       ) VALUES (
         ${book.title}, ${book.author}, ${book.publish_date}, ${book.summary},
-        ${book.state}, ${book.current_possessor}, ${book.times_read},
+        ${book.state}, ${book.owner}, ${book.current_possessor}, ${book.times_read},
         ${book.last_read}, ${book.date_added}, ${book.isbn}
       )
       RETURNING *
@@ -209,6 +212,7 @@ export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 
         publish_date = ${updatedData.publish_date || null},
         summary = ${updatedData.summary || null},
         state = ${updatedData.state},
+        owner = ${updatedData.owner},
         current_possessor = ${updatedData.current_possessor},
         times_read = ${updatedData.times_read},
         last_read = ${updatedData.last_read || null},
