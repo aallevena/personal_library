@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Book, BookFormData } from '../../types/book';
+import { User } from '../../types/user';
 import BarcodeScanner from './BarcodeScanner';
 
 interface AddBookFormProps {
@@ -17,6 +18,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
     publish_date: '',
     summary: '',
     state: 'In library',
+    owner: '',
     current_possessor: '',
     times_read: 0,
     last_read: '',
@@ -30,6 +32,26 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  // Fetch users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('/api/users');
+        const data = await response.json();
+        if (data.success && data.users) {
+          setUsers(data.users);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     if (book) {
@@ -39,6 +61,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
         publish_date: book.publish_date || '',
         summary: book.summary || '',
         state: book.state,
+        owner: book.owner,
         current_possessor: book.current_possessor,
         times_read: book.times_read,
         last_read: book.last_read || '',
@@ -281,19 +304,51 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
             </div>
 
             <div>
+              <label htmlFor="owner" className="block text-sm font-medium text-gray-700">
+                Owner *
+              </label>
+              <select
+                id="owner"
+                name="owner"
+                required
+                value={formData.owner}
+                onChange={handleInputChange}
+                disabled={loadingUsers}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">
+                  {loadingUsers ? 'Loading users...' : 'Select owner'}
+                </option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.name}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label htmlFor="current_possessor" className="block text-sm font-medium text-gray-700">
                 Current Possessor *
               </label>
-              <input
-                type="text"
+              <select
                 id="current_possessor"
                 name="current_possessor"
                 required
                 value={formData.current_possessor}
                 onChange={handleInputChange}
-                placeholder="e.g., Tony, Sarah, etc."
+                disabled={loadingUsers}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              >
+                <option value="">
+                  {loadingUsers ? 'Loading users...' : 'Select possessor'}
+                </option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.name}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -368,7 +423,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
             </button>
             <button
               type="submit"
-              disabled={submitting || !formData.title || !formData.current_possessor}
+              disabled={submitting || !formData.title || !formData.owner || !formData.current_possessor}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
             >
               {submitting ? 'Saving...' : (book ? 'Update Book' : 'Add Book')}
