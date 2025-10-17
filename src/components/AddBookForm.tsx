@@ -353,7 +353,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
               rows={3}
               value={formData.summary}
               onChange={handleInputChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
