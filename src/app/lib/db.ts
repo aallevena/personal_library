@@ -162,34 +162,39 @@ export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 
       return { ...updated, id: String(updated.id) };
     }
 
-    const setParts: string[] = [];
-    const values: (string | number | Date)[] = [];
-    let valueIndex = 1;
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value !== undefined) {
-        setParts.push(`${key} = $${valueIndex}`);
-        values.push(value);
-        valueIndex++;
-      }
-    });
-
-    if (setParts.length === 0) {
-      throw new Error('No fields to update');
+    // For Postgres, check if book exists first
+    const existingBook = await getBookById(id);
+    if (!existingBook) {
+      throw new Error('Book not found');
     }
 
-    setParts.push(`updated_at = CURRENT_TIMESTAMP`);
+    // Merge updates with existing book data to ensure all fields are present
+    const updatedData = {
+      ...existingBook,
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
 
-    const query = `
+    // Use tagged template with proper typing to avoid parameter binding issues
+    const { rows } = await sql<Book>`
       UPDATE books
-      SET ${setParts.join(', ')}
-      WHERE id = $${valueIndex}
+      SET
+        title = ${updatedData.title},
+        author = ${updatedData.author || null},
+        publish_date = ${updatedData.publish_date || null},
+        summary = ${updatedData.summary || null},
+        state = ${updatedData.state},
+        current_possessor = ${updatedData.current_possessor},
+        times_read = ${updatedData.times_read},
+        last_read = ${updatedData.last_read || null},
+        date_added = ${updatedData.date_added},
+        isbn = ${updatedData.isbn || null},
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
       RETURNING *
     `;
-    values.push(id);
 
-    const { rows } = await sql.query(query, values);
-    return rows[0] as Book;
+    return rows[0];
   } catch (error) {
     console.error('Error updating book:', error);
     throw error;
