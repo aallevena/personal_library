@@ -27,12 +27,18 @@ export async function POST(request: NextRequest) {
   try {
     const body: BookFormData = await request.json();
 
-    // Validate required fields
-    if (!body.title || !body.state || !body.owner || !body.current_possessor) {
+    // Validate required fields with specific error messages
+    const missingFields = [];
+    if (!body.title?.trim()) missingFields.push('Title');
+    if (!body.state) missingFields.push('State');
+    if (!body.owner?.trim()) missingFields.push('Owner');
+    if (!body.current_possessor?.trim()) missingFields.push('Current Possessor');
+
+    if (missingFields.length > 0) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: title, state, owner, and current_possessor are required'
+          error: `Missing required field${missingFields.length > 1 ? 's' : ''}: ${missingFields.join(', ')}`
         },
         { status: 400 }
       );
@@ -76,8 +82,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating book:', error);
 
-    // Check if it's a duplicate constraint error
     const errorMsg = error instanceof Error ? error.message : String(error);
+
+    // Check if it's a duplicate constraint error
     if (errorMsg.includes('UNIQUE constraint failed') ||
         errorMsg.includes('unique constraint') ||
         errorMsg.includes('duplicate key')) {
@@ -90,10 +97,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for NOT NULL constraint violations
+    if (errorMsg.includes('NOT NULL constraint failed')) {
+      // Extract field name from error message like "NOT NULL constraint failed: books.title"
+      const fieldMatch = errorMsg.match(/books\.(\w+)/);
+      const fieldName = fieldMatch ? fieldMatch[1].replace('_', ' ') : 'a required field';
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Missing required field: ${fieldName}`
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check for CHECK constraint violations (invalid state)
+    if (errorMsg.includes('CHECK constraint failed')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid state value. Must be: In library, Checked out, or Lost'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Generic database error
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create book'
+        error: `Database error: ${errorMsg}`
       },
       { status: 500 }
     );
