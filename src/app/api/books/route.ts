@@ -75,10 +75,25 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating book:', error);
+
+    // Check if it's a duplicate constraint error
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    if (errorMsg.includes('UNIQUE constraint failed') ||
+        errorMsg.includes('unique constraint') ||
+        errorMsg.includes('duplicate key')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Duplicate book: A book with this ISBN and Owner already exists'
+        },
+        { status: 409 } // 409 Conflict for duplicates
+      );
+    }
+
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to create book' 
+      {
+        success: false,
+        error: 'Failed to create book'
       },
       { status: 500 }
     );
