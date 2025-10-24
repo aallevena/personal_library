@@ -53,7 +53,8 @@ export async function initializeDatabase() {
           date_added TEXT NOT NULL DEFAULT (date('now')),
           isbn TEXT,
           created_at TEXT DEFAULT (datetime('now')),
-          updated_at TEXT DEFAULT (datetime('now'))
+          updated_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(isbn, owner)
         )
       `);
 
@@ -81,7 +82,8 @@ export async function initializeDatabase() {
           date_added DATE NOT NULL DEFAULT CURRENT_DATE,
           isbn TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(isbn, owner)
         )
       `;
 

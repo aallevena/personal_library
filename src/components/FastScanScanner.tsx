@@ -80,16 +80,32 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
       return;
     }
 
+    // Stop scanner while processing
+    if (isProcessing) {
+      console.log('Already processing, skipping...');
+      return;
+    }
+
     // Prevent duplicate processing of the same ISBN
     const isbnKey = `${isbn}-${currentDefaults.owner}`;
-    if (isProcessing || processingISBNRef.current.has(isbnKey)) {
+    if (processingISBNRef.current.has(isbnKey)) {
       console.log('Already processing this ISBN, skipping...');
       return;
     }
 
-    // Mark this ISBN as being processed
+    // Mark this ISBN as being processed and pause scanning
     processingISBNRef.current.add(isbnKey);
     setIsProcessing(true);
+
+    // Pause the scanner
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      try {
+        await scannerRef.current.pause(true);
+      } catch (error) {
+        console.debug('Error pausing scanner:', error);
+      }
+    }
+
     setStats(prev => ({ ...prev, scanned: prev.scanned + 1 }));
 
     // Check for duplicate
@@ -98,6 +114,16 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
       setStats(prev => ({ ...prev, duplicates: prev.duplicates + 1 }));
       processingISBNRef.current.delete(isbnKey);
       setIsProcessing(false);
+
+      // Resume the scanner
+      if (scannerRef.current && scannerRef.current.getState() === 2) {
+        try {
+          await scannerRef.current.resume();
+        } catch (error) {
+          console.debug('Error resuming scanner:', error);
+        }
+      }
+
       setTimeout(() => setBanner(null), 2000);
       return;
     }
@@ -187,6 +213,15 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
     } finally {
       processingISBNRef.current.delete(isbnKey);
       setIsProcessing(false);
+
+      // Resume the scanner
+      if (scannerRef.current && scannerRef.current.getState() === 2) { // State 2 = PAUSED
+        try {
+          await scannerRef.current.resume();
+        } catch (error) {
+          console.debug('Error resuming scanner:', error);
+        }
+      }
     }
   };
 
