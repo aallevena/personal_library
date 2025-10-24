@@ -34,9 +34,11 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
   const [showDefaultsEditor, setShowDefaultsEditor] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [addedBooks, setAddedBooks] = useState<Book[]>([]); // Track books added in this session
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cleanupInProgressRef = useRef(false);
+  const processingISBNRef = useRef<Set<string>>(new Set()); // Track ISBNs currently being processed
   const [isScanning, setIsScanning] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [scannerId] = useState(() => `fast-scanner-${Date.now()}`);
@@ -66,16 +68,27 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
   };
 
   const checkDuplicate = (isbn: string, owner: string): boolean => {
-    return existingBooks.some(
+    // Check in both existing books and books added in this session
+    const allBooks = [...existingBooks, ...addedBooks];
+    return allBooks.some(
       book => book.isbn === isbn && book.owner === owner
     );
   };
 
   const handleScanSuccess = async (isbn: string) => {
-    if (!validateISBN(isbn) || isProcessing) {
+    if (!validateISBN(isbn)) {
       return;
     }
 
+    // Prevent duplicate processing of the same ISBN
+    const isbnKey = `${isbn}-${currentDefaults.owner}`;
+    if (isProcessing || processingISBNRef.current.has(isbnKey)) {
+      console.log('Already processing this ISBN, skipping...');
+      return;
+    }
+
+    // Mark this ISBN as being processed
+    processingISBNRef.current.add(isbnKey);
     setIsProcessing(true);
     setStats(prev => ({ ...prev, scanned: prev.scanned + 1 }));
 
@@ -83,6 +96,7 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
     if (checkDuplicate(isbn, currentDefaults.owner)) {
       setBanner({ type: 'duplicate', message: 'Duplicate book skipped (same ISBN + Owner)' });
       setStats(prev => ({ ...prev, duplicates: prev.duplicates + 1 }));
+      processingISBNRef.current.delete(isbnKey);
       setIsProcessing(false);
       setTimeout(() => setBanner(null), 2000);
       return;
@@ -129,6 +143,7 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
       if (createResponse.ok && createData.success) {
         setBanner({ type: 'added', message: `Book added! (${stats.added + 1} total)` });
         setStats(prev => ({ ...prev, added: prev.added + 1 }));
+        setAddedBooks(prev => [...prev, createData.book]); // Track this book
         onBookAdded(createData.book);
         setTimeout(() => setBanner(null), 1500);
       } else {
@@ -141,6 +156,7 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
       setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
       setTimeout(() => setBanner(null), 3000);
     } finally {
+      processingISBNRef.current.delete(isbnKey);
       setIsProcessing(false);
     }
   };
