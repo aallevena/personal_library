@@ -103,6 +103,7 @@ CREATE TABLE books (
 - PL-17 #bug Mobile: Missing viewport meta tag in layout.tsx prevents proper mobile scaling. ✅
 - PL-18 #bug Mobile: Touch targets too small (buttons, dropdowns need larger tap areas for accessibility). ✅
 - PL-19 #bug Mobile: Add book modal width not optimized for small screens (max-w-2xl too wide). ✅
+- PL-7 #feature FastScan Mode for bulk book scanning with auto-add and duplicate detection. ✅
 
 
 ## Feature Backlog
@@ -117,19 +118,6 @@ CREATE TABLE books (
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
-
-### FastScan Feature (PL-7) - Breakdown
-*Parent: PL-7 #feature FastScan Mode for bulk book scanning*
-- PL-7.1 #task Add "Fast Scan" button to BookLibrary header (same row as Add Book/Add User buttons)
-- PL-7.2 #task Create FastScanSetup modal component with editable default fields form (all book fields configurable)
-- PL-7.3 #task Implement "Start Fast Scan" button to transition from setup to scanning mode
-- PL-7.4 #task Create FastScanScanner component that reuses BarcodeScanner with continuous scanning capability
-- PL-7.5 #task Add duplicate detection logic (check if book with same ISBN + Owner exists before adding)
-- PL-7.6 #task Implement auto-add flow: scan → fetch from Open Library API → create book with defaults
-- PL-7.7 #task Create status banner component showing: "Adding book...", "Book added (count)", "API lookup failed", "Duplicate skipped", error messages
-- PL-7.8 #task Add "Stop Scanning" button to exit FastScan mode and return to library view
-- PL-7.9 #task Implement running statistics display (books scanned, books added, duplicates skipped, errors)
-- PL-7.10 #task Add ability to edit default fields during active scanning session (updates apply to subsequent scans)
 **Pending Implementation:**
 
 <!-- Add new feature tickets below -->
