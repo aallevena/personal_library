@@ -185,9 +185,9 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-full sm:max-w-2xl my-2 sm:my-4 max-h-[calc(100vh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-900">
               {book ? 'Edit Book' : 'Add New Book'}
@@ -208,7 +208,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
             <button
               type="button"
               onClick={() => setScannerOpen(true)}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[44px] touch-manipulation w-full sm:w-auto justify-center"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -244,7 +244,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
                 type="button"
                 onClick={handleIsbnLookup}
                 disabled={!formData.isbn || isbnLookup.loading}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed min-h-[44px] touch-manipulation whitespace-nowrap"
               >
                 {isbnLookup.loading ? 'Looking up...' : 'Lookup'}
               </button>
@@ -413,18 +413,18 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium"
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium min-h-[44px] touch-manipulation"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !formData.title || !formData.owner || !formData.current_possessor}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium min-h-[44px] touch-manipulation"
             >
               {submitting ? 'Saving...' : (book ? 'Update Book' : 'Add Book')}
             </button>

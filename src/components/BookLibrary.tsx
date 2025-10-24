@@ -143,63 +143,69 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Personal Library</h1>
         
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <div className="flex gap-4 items-center">
+        <div className="flex flex-col gap-4">
+          {/* Action Buttons Row */}
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={() => setShowAddForm(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium min-h-[44px] touch-manipulation"
             >
               Add Book
             </button>
 
             <button
               onClick={() => setShowAddUserForm(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium min-h-[44px] touch-manipulation"
             >
               Add User
             </button>
-
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as Book['state'] | 'all')}
-              className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900"
-            >
-              <option value="all">All Books</option>
-              <option value="In library">In Library</option>
-              <option value="Checked out">Checked Out</option>
-              <option value="Lost">Lost</option>
-            </select>
-
-            <select
-              value={ownerFilter}
-              onChange={(e) => setOwnerFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900"
-            >
-              <option value="all">All Owners</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.name}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={possessorFilter}
-              onChange={(e) => setPossessorFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900"
-            >
-              <option value="all">All Possessors</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.name}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
           </div>
 
-          <div className="text-sm text-gray-600">
-            {filteredBooks.length} {filteredBooks.length === 1 ? 'book' : 'books'}
-            {filter !== 'all' && ` (${filter.toLowerCase()})`}
+          {/* Filters Row */}
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 items-stretch sm:items-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as Book['state'] | 'all')}
+                className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 min-h-[44px] touch-manipulation"
+              >
+                <option value="all">All Books</option>
+                <option value="In library">In Library</option>
+                <option value="Checked out">Checked Out</option>
+                <option value="Lost">Lost</option>
+              </select>
+
+              <select
+                value={ownerFilter}
+                onChange={(e) => setOwnerFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 min-h-[44px] touch-manipulation"
+              >
+                <option value="all">All Owners</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.name}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={possessorFilter}
+                onChange={(e) => setPossessorFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 min-h-[44px] touch-manipulation"
+              >
+                <option value="all">All Possessors</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.name}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="text-sm text-gray-600 self-start sm:self-center">
+              {filteredBooks.length} {filteredBooks.length === 1 ? 'book' : 'books'}
+              {filter !== 'all' && ` (${filter.toLowerCase()})`}
+            </div>
           </div>
         </div>
       </div>

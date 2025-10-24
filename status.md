@@ -112,6 +112,12 @@ CREATE TABLE books (
 - PL-13 #feature Audit log for analytics: Capture events when status, owner, or possessor changes, or when read count is incremented.
 - PL-14 #feature Add side modal for Books and Analytics navigation.
 - PL-15 #feature Search bar at the top for filtering on titles.
+- PL-16 #bug Mobile: Filter controls (2 buttons + 3 dropdowns) overflow on mobile screens. Need responsive wrapping.
+- PL-17 #bug Mobile: Missing viewport meta tag in layout.tsx prevents proper mobile scaling.
+- PL-18 #bug Mobile: Touch targets too small (buttons, dropdowns need larger tap areas for accessibility).
+- PL-19 #bug Mobile: Add book modal width not optimized for small screens (max-w-2xl too wide).
+- PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
+- PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
 **Pending Implementation:**
 
 <!-- Add new feature tickets below -->
