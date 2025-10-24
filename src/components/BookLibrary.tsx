@@ -6,6 +6,7 @@ import { User } from '../../types/user';
 import BookCard from './BookCard';
 import AddBookForm from './AddBookForm';
 import AddUserForm from './AddUserForm';
+import FastScanModal from './FastScanModal';
 
 interface BookLibraryProps {
   initialBooks?: Book[];
@@ -22,6 +23,8 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [ownerFilter, setOwnerFilter] = useState<string>('all');
   const [possessorFilter, setPossessorFilter] = useState<string>('all');
+  const [showFastScan, setShowFastScan] = useState(false);
+  const [fastScanDefaults, setFastScanDefaults] = useState<BookFormData | null>(null);
 
   useEffect(() => {
     fetchBooks();
@@ -159,6 +162,13 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
             >
               Add User
             </button>
+
+            <button
+              onClick={() => setShowFastScan(true)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium min-h-[44px] touch-manipulation"
+            >
+              Fast Scan
+            </button>
           </div>
 
           {/* Filters Row */}
@@ -264,6 +274,15 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
         <AddUserForm
           onSuccess={handleAddUser}
           onCancel={() => setShowAddUserForm(false)}
+        />
+      )}
+
+      {showFastScan && !fastScanDefaults && (
+        <FastScanModal
+          onClose={() => setShowFastScan(false)}
+          onStartScan={(defaults) => {
+            setFastScanDefaults(defaults);
+          }}
         />
       )}
     </div>
