@@ -100,9 +100,11 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
     // Pause the scanner
     if (scannerRef.current && scannerRef.current.isScanning) {
       try {
+        console.log('Pausing scanner...');
         await scannerRef.current.pause(true);
+        console.log('Scanner paused successfully');
       } catch (error) {
-        console.debug('Error pausing scanner:', error);
+        console.error('Error pausing scanner:', error);
       }
     }
 
@@ -116,11 +118,13 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
       setIsProcessing(false);
 
       // Resume the scanner
-      if (scannerRef.current && scannerRef.current.getState() === 2) {
+      if (scannerRef.current) {
         try {
+          console.log('Resuming scanner...');
           await scannerRef.current.resume();
+          console.log('Scanner resumed successfully');
         } catch (error) {
-          console.debug('Error resuming scanner:', error);
+          console.error('Error resuming scanner:', error);
         }
       }
 
