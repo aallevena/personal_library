@@ -188,14 +188,15 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-full sm:max-w-2xl my-2 sm:my-4 max-h-[calc(100vh-1rem)] sm:max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-gray-900">
+          <div className="flex justify-between items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex-1 min-w-0 truncate">
               {book ? 'Edit Book' : 'Add New Book'}
             </h2>
             <button
               type="button"
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
+              aria-label="Close"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
