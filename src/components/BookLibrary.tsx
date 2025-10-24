@@ -7,6 +7,7 @@ import BookCard from './BookCard';
 import AddBookForm from './AddBookForm';
 import AddUserForm from './AddUserForm';
 import FastScanModal from './FastScanModal';
+import FastScanScanner from './FastScanScanner';
 
 interface BookLibraryProps {
   initialBooks?: Book[];
@@ -283,6 +284,19 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
           onStartScan={(defaults) => {
             setFastScanDefaults(defaults);
           }}
+        />
+      )}
+
+      {showFastScan && fastScanDefaults && (
+        <FastScanScanner
+          defaults={fastScanDefaults}
+          existingBooks={books}
+          onClose={() => {
+            setShowFastScan(false);
+            setFastScanDefaults(null);
+            fetchBooks(); // Refresh book list
+          }}
+          onBookAdded={handleAddBook}
         />
       )}
     </div>
