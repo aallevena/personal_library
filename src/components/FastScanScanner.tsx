@@ -80,33 +80,20 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
       return;
     }
 
-    // Stop scanner while processing
+    // Stop scanner while processing - simply return if already processing
     if (isProcessing) {
-      console.log('Already processing, skipping...');
       return;
     }
 
     // Prevent duplicate processing of the same ISBN
     const isbnKey = `${isbn}-${currentDefaults.owner}`;
     if (processingISBNRef.current.has(isbnKey)) {
-      console.log('Already processing this ISBN, skipping...');
       return;
     }
 
-    // Mark this ISBN as being processed and pause scanning
+    // Mark this ISBN as being processed - this will block new scans
     processingISBNRef.current.add(isbnKey);
     setIsProcessing(true);
-
-    // Pause the scanner
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      try {
-        console.log('Pausing scanner...');
-        await scannerRef.current.pause(true);
-        console.log('Scanner paused successfully');
-      } catch (error) {
-        console.error('Error pausing scanner:', error);
-      }
-    }
 
     setStats(prev => ({ ...prev, scanned: prev.scanned + 1 }));
 
@@ -116,18 +103,6 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
       setStats(prev => ({ ...prev, duplicates: prev.duplicates + 1 }));
       processingISBNRef.current.delete(isbnKey);
       setIsProcessing(false);
-
-      // Resume the scanner
-      if (scannerRef.current) {
-        try {
-          console.log('Resuming scanner...');
-          await scannerRef.current.resume();
-          console.log('Scanner resumed successfully');
-        } catch (error) {
-          console.error('Error resuming scanner:', error);
-        }
-      }
-
       setTimeout(() => setBanner(null), 2000);
       return;
     }
@@ -217,15 +192,6 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
     } finally {
       processingISBNRef.current.delete(isbnKey);
       setIsProcessing(false);
-
-      // Resume the scanner
-      if (scannerRef.current && scannerRef.current.getState() === 2) { // State 2 = PAUSED
-        try {
-          await scannerRef.current.resume();
-        } catch (error) {
-          console.debug('Error resuming scanner:', error);
-        }
-      }
     }
   };
 
