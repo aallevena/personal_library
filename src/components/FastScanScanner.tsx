@@ -147,12 +147,41 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
         onBookAdded(createData.book);
         setTimeout(() => setBanner(null), 1500);
       } else {
-        throw new Error(createData.error || 'Failed to add book');
+        // Handle specific error types
+        const errorMsg = createData.error || 'Failed to add book';
+
+        // Check if it's a duplicate/constraint error
+        if (errorMsg.toLowerCase().includes('duplicate') ||
+            errorMsg.toLowerCase().includes('already exists') ||
+            errorMsg.toLowerCase().includes('unique constraint')) {
+          setBanner({ type: 'duplicate', message: `Duplicate: Book already exists (ISBN: ${isbn.slice(-4)})` });
+          setStats(prev => ({ ...prev, duplicates: prev.duplicates + 1 }));
+          setTimeout(() => setBanner(null), 2000);
+        } else if (errorMsg.toLowerCase().includes('required') ||
+                   errorMsg.toLowerCase().includes('missing') ||
+                   errorMsg.toLowerCase().includes('cannot be empty')) {
+          setBanner({ type: 'error', message: `Validation error: ${errorMsg}` });
+          setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
+          setTimeout(() => setBanner(null), 3000);
+        } else {
+          setBanner({ type: 'error', message: `Failed to save: ${errorMsg}` });
+          setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
+          setTimeout(() => setBanner(null), 3000);
+        }
       }
     } catch (error) {
       console.error('Error adding book:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setBanner({ type: 'error', message: `Error: ${errorMsg}` });
+
+      // More specific error messages
+      if (errorMsg.includes('fetch')) {
+        setBanner({ type: 'error', message: 'Network error: Could not reach server' });
+      } else if (errorMsg.includes('JSON')) {
+        setBanner({ type: 'error', message: 'Data error: Invalid response from server' });
+      } else {
+        setBanner({ type: 'error', message: `System error: ${errorMsg}` });
+      }
+
       setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
       setTimeout(() => setBanner(null), 3000);
     } finally {
