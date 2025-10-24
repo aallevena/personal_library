@@ -110,7 +110,6 @@ CREATE TABLE books (
 ### New Features Pipeline
 *Use PL-XXX format for ticket tracking (e.g., PL-001, PL-002)*
 - PL-5 #tech-debt Barcode Scanner: Remove timer-based workarounds in BarcodeScanner component. Replace setTimeout delays with proper React lifecycle hooks and state management to eliminate race conditions between React rendering and html5-qrcode library initialization.
-- PL-7 #feature FastScan Mode button. Add a button to do fast scanning. Will be to the right of the currently existing Add Book. Will say "Fast Scan: Add Books" A modal will pop up for a user to fill out default fields (Owner, status,etc.), then they click "Fast Scan". Have a checkbox to not add if something is detected as already in the library.  Anytime an ISBN number is detected automatically add it to the library.
 - PL-8 #feature Analytics page - have a page showing total number of books + pie chart of read vs unread and utilization rate (books lent out + books read / total books)
 - PL-9 #feature Add utilization rate to top of home page above where all the books are listed.
 - PL-13 #feature Audit log for analytics: Capture events when status, owner, or possessor changes, or when read count is incremented.
@@ -118,6 +117,19 @@ CREATE TABLE books (
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
+
+### FastScan Feature (PL-7) - Breakdown
+*Parent: PL-7 #feature FastScan Mode for bulk book scanning*
+- PL-7.1 #task Add "Fast Scan" button to BookLibrary header (same row as Add Book/Add User buttons)
+- PL-7.2 #task Create FastScanSetup modal component with editable default fields form (all book fields configurable)
+- PL-7.3 #task Implement "Start Fast Scan" button to transition from setup to scanning mode
+- PL-7.4 #task Create FastScanScanner component that reuses BarcodeScanner with continuous scanning capability
+- PL-7.5 #task Add duplicate detection logic (check if book with same ISBN + Owner exists before adding)
+- PL-7.6 #task Implement auto-add flow: scan → fetch from Open Library API → create book with defaults
+- PL-7.7 #task Create status banner component showing: "Adding book...", "Book added (count)", "API lookup failed", "Duplicate skipped", error messages
+- PL-7.8 #task Add "Stop Scanning" button to exit FastScan mode and return to library view
+- PL-7.9 #task Implement running statistics display (books scanned, books added, duplicates skipped, errors)
+- PL-7.10 #task Add ability to edit default fields during active scanning session (updates apply to subsequent scans)
 **Pending Implementation:**
 
 <!-- Add new feature tickets below -->
