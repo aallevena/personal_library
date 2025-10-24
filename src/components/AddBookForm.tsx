@@ -186,8 +186,8 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-full sm:max-w-2xl my-2 sm:my-4 max-h-[calc(100vh-1rem)] sm:max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-full sm:max-w-2xl my-4 sm:my-4 max-h-[calc(100vh-2rem)] sm:max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-6 space-y-4 sm:space-y-6">
           <div className="flex justify-between items-center gap-3">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex-1 min-w-0 truncate">
               {book ? 'Edit Book' : 'Add New Book'}
