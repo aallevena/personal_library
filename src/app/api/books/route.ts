@@ -56,18 +56,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Helper function to validate date format (YYYY-MM-DD or YYYY)
+    const validateDate = (dateStr: string | undefined): string | undefined => {
+      if (!dateStr) return undefined;
+      const trimmed = dateStr.trim();
+      if (!trimmed) return undefined;
+
+      // Accept YYYY-MM-DD format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return trimmed;
+      }
+
+      // Accept YYYY format and convert to YYYY-01-01
+      if (/^\d{4}$/.test(trimmed)) {
+        return `${trimmed}-01-01`;
+      }
+
+      // Reject invalid formats
+      return undefined;
+    };
+
     // Create the book with default values for missing fields
     // Convert empty strings to undefined for optional fields, especially dates
     const bookData = {
       title: body.title,
       author: body.author?.trim() || undefined,
-      publish_date: body.publish_date?.trim() || undefined,
+      publish_date: validateDate(body.publish_date),
       summary: body.summary?.trim() || undefined,
       state: body.state,
       owner: body.owner,
       current_possessor: body.current_possessor,
       times_read: body.times_read || 0,
-      last_read: body.last_read?.trim() || undefined,
+      last_read: validateDate(body.last_read),
       date_added: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
       isbn: body.isbn?.trim() || undefined
     };
@@ -117,6 +137,18 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Invalid state value. Must be: In library, Checked out, or Lost'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check for invalid date syntax
+    if (errorMsg.toLowerCase().includes('invalid date') ||
+        errorMsg.toLowerCase().includes('date syntax')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid date format. Dates must be in YYYY-MM-DD format (e.g., 2024-01-15)'
         },
         { status: 400 }
       );
