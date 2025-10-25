@@ -35,6 +35,17 @@ export interface User {
   updated_at: string;
 }
 
+export interface AuditLog {
+  id: string;
+  changed_field: string;
+  old_value: string;
+  new_value: string;
+  changed_by: string;
+  timestamp: string;
+  book_id?: string;
+  book_title?: string;
+}
+
 export async function initializeDatabase() {
   try {
     if (USE_SQLITE && db) {
@@ -66,6 +77,19 @@ export async function initializeDatabase() {
           updated_at TEXT DEFAULT (datetime('now'))
         )
       `);
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          changed_field TEXT NOT NULL,
+          old_value TEXT NOT NULL,
+          new_value TEXT NOT NULL,
+          changed_by TEXT NOT NULL,
+          timestamp TEXT DEFAULT (datetime('now')),
+          book_id TEXT,
+          book_title TEXT
+        )
+      `);
     } else {
       await sql`
         CREATE TABLE IF NOT EXISTS books (
@@ -93,6 +117,19 @@ export async function initializeDatabase() {
           name TEXT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          changed_field TEXT NOT NULL,
+          old_value TEXT NOT NULL,
+          new_value TEXT NOT NULL,
+          changed_by TEXT NOT NULL,
+          timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          book_id TEXT,
+          book_title TEXT
         )
       `;
     }
@@ -168,6 +205,15 @@ export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated
 
 export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 'created_at' | 'updated_at'>>): Promise<Book> {
   try {
+    // Get existing book for audit logging
+    const existingBook = await getBookById(id);
+    if (!existingBook) {
+      throw new Error('Book not found');
+    }
+
+    // Track fields we want to audit
+    const trackedFields = ['state', 'owner', 'current_possessor', 'times_read'];
+
     if (USE_SQLITE && db) {
       const setParts: string[] = [];
       const values: unknown[] = [];
@@ -189,13 +235,24 @@ export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 
       const query = `UPDATE books SET ${setParts.join(', ')} WHERE id = ?`;
       db.prepare(query).run(...values);
       const updated = db.prepare('SELECT * FROM books WHERE id = ?').get(id) as Omit<Book, 'id'> & { id: number };
-      return { ...updated, id: String(updated.id) };
-    }
 
-    // For Postgres, check if book exists first
-    const existingBook = await getBookById(id);
-    if (!existingBook) {
-      throw new Error('Book not found');
+      // Create audit logs for tracked field changes
+      for (const field of trackedFields) {
+        const oldValue = existingBook[field as keyof Book];
+        const newValue = updates[field as keyof typeof updates];
+        if (newValue !== undefined && String(oldValue) !== String(newValue)) {
+          await createAuditLog({
+            changed_field: field,
+            old_value: String(oldValue),
+            new_value: String(newValue),
+            changed_by: 'system',
+            book_id: String(updated.id),
+            book_title: updated.title
+          });
+        }
+      }
+
+      return { ...updated, id: String(updated.id) };
     }
 
     // Merge updates with existing book data to ensure all fields are present
@@ -224,6 +281,22 @@ export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 
       WHERE id = ${id}
       RETURNING *
     `;
+
+    // Create audit logs for tracked field changes
+    for (const field of trackedFields) {
+      const oldValue = existingBook[field as keyof Book];
+      const newValue = updates[field as keyof typeof updates];
+      if (newValue !== undefined && String(oldValue) !== String(newValue)) {
+        await createAuditLog({
+          changed_field: field,
+          old_value: String(oldValue),
+          new_value: String(newValue),
+          changed_by: 'system',
+          book_id: rows[0].id,
+          book_title: rows[0].title
+        });
+      }
+    }
 
     return rows[0];
   } catch (error) {
@@ -420,6 +493,90 @@ export async function reassignUserBooks(fromUserId: string, toUserId: string): P
     }
   } catch (error) {
     console.error('Error reassigning user books:', error);
+    throw error;
+  }
+}
+
+export async function createAuditLog(log: Omit<AuditLog, 'id' | 'timestamp'>): Promise<AuditLog> {
+  try {
+    if (USE_SQLITE && db) {
+      const stmt = db.prepare(`
+        INSERT INTO audit_logs (changed_field, old_value, new_value, changed_by, book_id, book_title)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+      const result = stmt.run(
+        log.changed_field,
+        log.old_value,
+        log.new_value,
+        log.changed_by,
+        log.book_id || null,
+        log.book_title || null
+      );
+      const newLog = db.prepare('SELECT * FROM audit_logs WHERE id = ?').get(result.lastInsertRowid) as Omit<AuditLog, 'id'> & { id: number };
+      return { ...newLog, id: String(newLog.id) };
+    }
+    const { rows } = await sql<AuditLog>`
+      INSERT INTO audit_logs (changed_field, old_value, new_value, changed_by, book_id, book_title)
+      VALUES (${log.changed_field}, ${log.old_value}, ${log.new_value}, ${log.changed_by}, ${log.book_id || null}, ${log.book_title || null})
+      RETURNING *
+    `;
+    return rows[0];
+  } catch (error) {
+    console.error('Error creating audit log:', error);
+    throw error;
+  }
+}
+
+export async function getAuditLogs(filters?: {
+  eventType?: string;
+  bookId?: string;
+  limit?: number;
+}): Promise<AuditLog[]> {
+  try {
+    const limit = filters?.limit || 50;
+
+    if (USE_SQLITE && db) {
+      let query = 'SELECT * FROM audit_logs';
+      const conditions: string[] = [];
+      const values: unknown[] = [];
+
+      if (filters?.eventType && filters.eventType !== 'all') {
+        conditions.push('changed_field = ?');
+        values.push(filters.eventType);
+      }
+
+      if (filters?.bookId) {
+        conditions.push('book_id = ?');
+        values.push(filters.bookId);
+      }
+
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
+
+      query += ' ORDER BY timestamp DESC LIMIT ?';
+      values.push(limit);
+
+      const rows = db.prepare(query).all(...values) as Array<Omit<AuditLog, 'id'> & { id: number }>;
+      return rows.map(row => ({ ...row, id: String(row.id) }));
+    }
+
+    let query = sql`SELECT * FROM audit_logs`;
+
+    if (filters?.eventType && filters.eventType !== 'all' && filters?.bookId) {
+      query = sql`SELECT * FROM audit_logs WHERE changed_field = ${filters.eventType} AND book_id = ${filters.bookId} ORDER BY timestamp DESC LIMIT ${limit}`;
+    } else if (filters?.eventType && filters.eventType !== 'all') {
+      query = sql`SELECT * FROM audit_logs WHERE changed_field = ${filters.eventType} ORDER BY timestamp DESC LIMIT ${limit}`;
+    } else if (filters?.bookId) {
+      query = sql`SELECT * FROM audit_logs WHERE book_id = ${filters.bookId} ORDER BY timestamp DESC LIMIT ${limit}`;
+    } else {
+      query = sql`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ${limit}`;
+    }
+
+    const { rows } = await query;
+    return rows as AuditLog[];
+  } catch (error) {
+    console.error('Error fetching audit logs:', error);
     throw error;
   }
 }
