@@ -5,7 +5,6 @@ import { Book, User } from '../app/lib/db';
 
 interface AnalyticsStats {
   totalBooks: number;
-  totalUsers: number;
   booksInLibrary: number;
   booksCheckedOut: number;
   booksLost: number;
@@ -66,7 +65,6 @@ export default function AnalyticsPage() {
     // Calculate stats
     const analyticsStats: AnalyticsStats = {
       totalBooks: filteredBooks.length,
-      totalUsers: users.length,
       booksInLibrary: filteredBooks.filter((b: Book) => b.state === 'In library').length,
       booksCheckedOut: filteredBooks.filter((b: Book) => b.state === 'Checked out').length,
       booksLost: filteredBooks.filter((b: Book) => b.state === 'Lost').length,
@@ -129,12 +127,6 @@ export default function AnalyticsPage() {
             {selectedUser === 'all' ? 'Total Books' : `Books Owned by ${selectedUser}`}
           </div>
           <div className="text-3xl font-bold text-gray-900">{stats.totalBooks}</div>
-        </div>
-
-        {/* Total Users */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-600 mb-1">Total Users</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.totalUsers}</div>
         </div>
 
         {/* Books In Library */}
