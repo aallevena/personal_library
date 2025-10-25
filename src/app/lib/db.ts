@@ -317,6 +317,15 @@ export async function getUserById(id: string): Promise<User | null> {
 
 export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>): Promise<User> {
   try {
+    // Get the current user to retrieve the old name
+    const currentUser = await getUserById(id);
+    if (!currentUser) {
+      throw new Error('User not found');
+    }
+
+    const oldName = currentUser.name;
+    const newName = updates.name;
+
     if (USE_SQLITE && db) {
       const setParts: string[] = [];
       const values: unknown[] = [];
@@ -337,6 +346,13 @@ export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 
 
       const query = `UPDATE users SET ${setParts.join(', ')} WHERE id = ?`;
       db.prepare(query).run(...values);
+
+      // If name was updated, update all books that reference the old name
+      if (newName && newName !== oldName) {
+        db.prepare('UPDATE books SET owner = ? WHERE owner = ?').run(newName, oldName);
+        db.prepare('UPDATE books SET current_possessor = ? WHERE current_possessor = ?').run(newName, oldName);
+      }
+
       const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as Omit<User, 'id'> & { id: number };
       return { ...updated, id: String(updated.id) };
     }
@@ -352,6 +368,12 @@ export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 
 
     if (!rows[0]) {
       throw new Error('User not found');
+    }
+
+    // If name was updated, update all books that reference the old name
+    if (newName && newName !== oldName) {
+      await sql`UPDATE books SET owner = ${newName} WHERE owner = ${oldName}`;
+      await sql`UPDATE books SET current_possessor = ${newName} WHERE current_possessor = ${oldName}`;
     }
 
     return rows[0];
