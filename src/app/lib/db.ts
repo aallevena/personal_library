@@ -300,3 +300,104 @@ export async function getAllUsers(): Promise<User[]> {
     throw error;
   }
 }
+
+export async function getUserById(id: string): Promise<User | null> {
+  try {
+    if (USE_SQLITE && db) {
+      const row = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as (Omit<User, 'id'> & { id: number }) | undefined;
+      return row ? { ...row, id: String(row.id) } : null;
+    }
+    const { rows } = await sql<User>`SELECT * FROM users WHERE id = ${id}`;
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error fetching user by ID:', error);
+    throw error;
+  }
+}
+
+export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>): Promise<User> {
+  try {
+    if (USE_SQLITE && db) {
+      const setParts: string[] = [];
+      const values: unknown[] = [];
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          setParts.push(`${key} = ?`);
+          values.push(value);
+        }
+      });
+
+      if (setParts.length === 0) {
+        throw new Error('No fields to update');
+      }
+
+      setParts.push(`updated_at = datetime('now')`);
+      values.push(id);
+
+      const query = `UPDATE users SET ${setParts.join(', ')} WHERE id = ?`;
+      db.prepare(query).run(...values);
+      const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as Omit<User, 'id'> & { id: number };
+      return { ...updated, id: String(updated.id) };
+    }
+
+    const { rows } = await sql<User>`
+      UPDATE users
+      SET
+        name = ${updates.name},
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+
+    if (!rows[0]) {
+      throw new Error('User not found');
+    }
+
+    return rows[0];
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
+}
+
+export async function deleteUser(id: string): Promise<boolean> {
+  try {
+    if (USE_SQLITE && db) {
+      const result = db.prepare('DELETE FROM users WHERE id = ?').run(id);
+      return result.changes > 0;
+    }
+    const { rowCount } = await sql`DELETE FROM users WHERE id = ${id}`;
+    return (rowCount ?? 0) > 0;
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+}
+
+export async function reassignUserBooks(fromUserId: string, toUserId: string): Promise<void> {
+  try {
+    if (USE_SQLITE && db) {
+      // Update books owned by the user
+      db.prepare('UPDATE books SET owner = ? WHERE owner = (SELECT name FROM users WHERE id = ?)').run(toUserId, fromUserId);
+      // Update books possessed by the user
+      db.prepare('UPDATE books SET current_possessor = ? WHERE current_possessor = (SELECT name FROM users WHERE id = ?)').run(toUserId, fromUserId);
+    } else {
+      // Get user names
+      const fromUser = await getUserById(fromUserId);
+      const toUser = await getUserById(toUserId);
+
+      if (!fromUser || !toUser) {
+        throw new Error('User not found');
+      }
+
+      // Update books owned by the user
+      await sql`UPDATE books SET owner = ${toUser.name} WHERE owner = ${fromUser.name}`;
+      // Update books possessed by the user
+      await sql`UPDATE books SET current_possessor = ${toUser.name} WHERE current_possessor = ${fromUser.name}`;
+    }
+  } catch (error) {
+    console.error('Error reassigning user books:', error);
+    throw error;
+  }
+}
