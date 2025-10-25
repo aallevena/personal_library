@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User } from '../app/lib/db';
+import { User, Book } from '../app/lib/db';
 import AddUserForm from './AddUserForm';
 
 interface UserWithStats extends User {
@@ -43,8 +43,8 @@ export default function UsersPage() {
 
       // Calculate book counts for each user
       const usersWithStats: UserWithStats[] = usersData.users.map((user: User) => {
-        const booksOwned = booksData.books.filter((book: any) => book.owner === user.name).length;
-        const booksPossessed = booksData.books.filter((book: any) => book.current_possessor === user.name).length;
+        const booksOwned = booksData.books.filter((book: Book) => book.owner === user.name).length;
+        const booksPossessed = booksData.books.filter((book: Book) => book.current_possessor === user.name).length;
         return { ...user, booksOwned, booksPossessed };
       });
 

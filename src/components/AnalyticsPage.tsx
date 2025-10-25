@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Book } from '../app/lib/db';
 
 interface AnalyticsStats {
   totalBooks: number;
@@ -44,9 +45,9 @@ export default function AnalyticsPage() {
       const analyticsStats: AnalyticsStats = {
         totalBooks: books.length,
         totalUsers: users.length,
-        booksInLibrary: books.filter((b: any) => b.state === 'In library').length,
-        booksCheckedOut: books.filter((b: any) => b.state === 'Checked out').length,
-        booksLost: books.filter((b: any) => b.state === 'Lost').length,
+        booksInLibrary: books.filter((b: Book) => b.state === 'In library').length,
+        booksCheckedOut: books.filter((b: Book) => b.state === 'Checked out').length,
+        booksLost: books.filter((b: Book) => b.state === 'Lost').length,
       };
 
       setStats(analyticsStats);
