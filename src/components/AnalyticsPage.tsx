@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Book } from '../app/lib/db';
+import { Book, User } from '../app/lib/db';
 
 interface AnalyticsStats {
   totalBooks: number;
@@ -15,12 +15,21 @@ export default function AnalyticsPage() {
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string>('all');
 
   useEffect(() => {
-    fetchStats();
+    fetchData();
   }, []);
 
-  const fetchStats = async () => {
+  useEffect(() => {
+    if (books.length > 0 || users.length > 0) {
+      calculateStats();
+    }
+  }, [selectedUser, books, users]);
+
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -38,25 +47,32 @@ export default function AnalyticsPage() {
         throw new Error('Failed to fetch data');
       }
 
-      const books = booksData.books;
-      const users = usersData.users;
-
-      // Calculate stats
-      const analyticsStats: AnalyticsStats = {
-        totalBooks: books.length,
-        totalUsers: users.length,
-        booksInLibrary: books.filter((b: Book) => b.state === 'In library').length,
-        booksCheckedOut: books.filter((b: Book) => b.state === 'Checked out').length,
-        booksLost: books.filter((b: Book) => b.state === 'Lost').length,
-      };
-
-      setStats(analyticsStats);
+      setBooks(booksData.books);
+      setUsers(usersData.users);
     } catch (err) {
       setError('Failed to load analytics');
       console.error('Error fetching analytics:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateStats = () => {
+    // Filter books by selected user if not "all"
+    const filteredBooks = selectedUser === 'all'
+      ? books
+      : books.filter((b: Book) => b.owner === selectedUser);
+
+    // Calculate stats
+    const analyticsStats: AnalyticsStats = {
+      totalBooks: filteredBooks.length,
+      totalUsers: users.length,
+      booksInLibrary: filteredBooks.filter((b: Book) => b.state === 'In library').length,
+      booksCheckedOut: filteredBooks.filter((b: Book) => b.state === 'Checked out').length,
+      booksLost: filteredBooks.filter((b: Book) => b.state === 'Lost').length,
+    };
+
+    setStats(analyticsStats);
   };
 
   if (loading) {
@@ -85,11 +101,33 @@ export default function AnalyticsPage() {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-6 text-gray-900">Analytics</h1>
 
+      {/* User Filter */}
+      <div className="mb-6">
+        <label htmlFor="user-filter" className="block text-sm font-medium text-gray-700 mb-2">
+          Filter by User
+        </label>
+        <select
+          id="user-filter"
+          value={selectedUser}
+          onChange={(e) => setSelectedUser(e.target.value)}
+          className="w-full md:w-64 border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+        >
+          <option value="all">All Users</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.name}>
+              {user.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {/* Total Books */}
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-600 mb-1">Total Books</div>
+          <div className="text-sm text-gray-600 mb-1">
+            {selectedUser === 'all' ? 'Total Books' : `Books Owned by ${selectedUser}`}
+          </div>
           <div className="text-3xl font-bold text-gray-900">{stats.totalBooks}</div>
         </div>
 
