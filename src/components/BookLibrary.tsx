@@ -5,7 +5,6 @@ import { Book, BookFormData } from '../../types/book';
 import { User } from '../../types/user';
 import BookCard from './BookCard';
 import AddBookForm from './AddBookForm';
-import AddUserForm from './AddUserForm';
 import FastScanModal from './FastScanModal';
 import FastScanScanner from './FastScanScanner';
 
@@ -20,7 +19,6 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [filter, setFilter] = useState<Book['state'] | 'all'>('all');
-  const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [ownerFilter, setOwnerFilter] = useState<string>('all');
   const [possessorFilter, setPossessorFilter] = useState<string>('all');
@@ -67,13 +65,6 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const handleAddBook = (book: Book) => {
     setBooks(prev => [book, ...prev]);
     setShowAddForm(false);
-  };
-
-  const handleAddUser = (user: User) => {
-    // User created successfully - just close the modal
-    // In the future, we could display a success message or navigate to a users page
-    setShowAddUserForm(false);
-    console.log('User created:', user);
   };
 
   const handleEditBook = (book: Book) => {
@@ -155,13 +146,6 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium min-h-[44px] touch-manipulation"
             >
               Add Book
-            </button>
-
-            <button
-              onClick={() => setShowAddUserForm(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium min-h-[44px] touch-manipulation"
-            >
-              Add User
             </button>
 
             <button
@@ -268,13 +252,6 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
             setShowAddForm(false);
             setEditingBook(null);
           }}
-        />
-      )}
-
-      {showAddUserForm && (
-        <AddUserForm
-          onSuccess={handleAddUser}
-          onCancel={() => setShowAddUserForm(false)}
         />
       )}
 
