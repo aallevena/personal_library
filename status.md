@@ -167,5 +167,7 @@ CREATE TABLE audit_logs (
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
+- PL-25 #feature Add tags field to books and users: Free text field for categorizing and labeling books and users with custom tags.
+- PL-26 #feature Mass Edit Mode: Similar to FastScan, but for bulk editing books. Scan multiple books and apply changes to all scanned items (e.g., mass tagging, mass checkout, mass increment read count, change owner/possessor). Intent is to streamline bulk operations on multiple books at once.
 
 <!-- Add new feature tickets below -->
