@@ -25,7 +25,8 @@ A family-oriented personal library management system built with modern web techn
 - **State Tracking**: Book status management (In library, Checked out, Lost)
 - **Responsive Design**: Mobile-first UI with Tailwind CSS and touch-optimized controls
 - **Real-time Filtering**: Dynamic book filtering by status, owner, and possessor
-- **Analytics Dashboard**: Live stats showing total books, users, and state breakdowns
+- **Analytics Dashboard**: Live stats showing total books, users, and state breakdowns with user filtering
+- **Activity Log**: Comprehensive audit trail tracking changes to book status, owner, possessor, and read count
 - **Error Handling**: Comprehensive error states with specific field-level messages
 - **Duplicate Prevention**: Database-level UNIQUE constraint on ISBN+Owner combination
 
@@ -54,6 +55,17 @@ CREATE TABLE users (
   name TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  changed_field TEXT NOT NULL,
+  old_value TEXT NOT NULL,
+  new_value TEXT NOT NULL,
+  changed_by TEXT NOT NULL,
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  book_id TEXT,
+  book_title TEXT
 );
 ```
 
@@ -100,6 +112,9 @@ CREATE TABLE users (
 - `PUT /api/users/[id]` - Update user name
 - `DELETE /api/users/[id]` - Delete user with book reassignment
 
+### Analytics
+- `GET /api/audit-logs` - Get audit logs with optional filtering (eventType, bookId, limit)
+
 ### Utilities
 - `GET /api/init` - Initialize/reinitialize database schema
 - `GET /api/cleanup-duplicates` - Remove duplicate books (keeps oldest)
@@ -142,13 +157,13 @@ CREATE TABLE users (
 - PL-22 #feature Bottom navigation with Books, Users, and Analytics pages. Full user CRUD with inline editing and book reassignment. ✅
 - PL-23 #feature Add user filter bar at the top of Analytics page to filter statistics by specific user (show only that user's books). ✅
 - PL-24 #bug User rename orphans books: Fixed by updating all books (owner and current_possessor fields) when user name changes. ✅
+- PL-13 #feature Audit log for analytics: Capture events when status, owner, or possessor changes, or when read count is incremented. ✅
 
 ## Feature Backlog
 *Use PL-XXX format for ticket tracking (e.g., PL-001, PL-002)*
 - PL-5 #tech-debt Barcode Scanner: Remove timer-based workarounds in BarcodeScanner component. Replace setTimeout delays with proper React lifecycle hooks and state management to eliminate race conditions between React rendering and html5-qrcode library initialization.
 - PL-8 #feature Analytics page - have a page showing total number of books + pie chart of read vs unread and utilization rate (books lent out + books read / total books)
 - PL-9 #feature Add utilization rate to top of home page above where all the books are listed.
-- PL-13 #feature Audit log for analytics: Capture events when status, owner, or possessor changes, or when read count is incremented.
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
