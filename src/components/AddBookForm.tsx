@@ -373,15 +373,31 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
               <label htmlFor="times_read" className="block text-sm font-medium text-gray-700">
                 Times Read
               </label>
-              <input
-                type="number"
-                id="times_read"
-                name="times_read"
-                min="0"
-                value={formData.times_read}
-                onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div className="mt-1 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, times_read: Math.max(0, prev.times_read - 1) }))}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-bold min-h-[44px] min-w-[44px]"
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  id="times_read"
+                  name="times_read"
+                  min="0"
+                  value={formData.times_read}
+                  onChange={handleInputChange}
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
+                />
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, times_read: prev.times_read + 1 }))}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-bold min-h-[44px] min-w-[44px]"
+                >
+                  +
+                </button>
+              </div>
             </div>
 
             <div>
