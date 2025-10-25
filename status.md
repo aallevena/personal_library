@@ -151,5 +151,6 @@ CREATE TABLE users (
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
+- PL-24 #bug User rename orphans books: When renaming a user, all their books remain assigned to the old name. Need to update all books (owner and current_possessor fields) to use the new user name.
 
 <!-- Add new feature tickets below -->
