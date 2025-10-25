@@ -150,5 +150,6 @@ CREATE TABLE users (
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
+- PL-23 #feature Add user filter bar at the top of Analytics page to filter statistics by specific user (show only that user's books).
 
 <!-- Add new feature tickets below -->
