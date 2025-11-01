@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Book, BookFormData } from '../../types/book';
+import { BookFormData } from '../../types/book';
 import { User } from '../../types/user';
+import TagInput from './TagInput';
 
 interface FastScanModalProps {
   onClose: () => void;
@@ -21,6 +22,7 @@ export default function FastScanModal({ onClose, onStartScan }: FastScanModalPro
     times_read: 0,
     last_read: '',
     isbn: '',
+    tags: '',
   });
 
   const [users, setUsers] = useState<User[]>([]);
@@ -203,6 +205,14 @@ export default function FastScanModal({ onClose, onStartScan }: FastScanModalPro
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+
+            {/* Tags */}
+            <TagInput
+              value={defaults.tags || ''}
+              onChange={(value) => setDefaults(prev => ({ ...prev, tags: value }))}
+              label="Tags (Optional)"
+              id="tags"
+            />
           </div>
 
           {/* Form Actions */}
