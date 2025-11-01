@@ -57,6 +57,7 @@ export default function FastScanScanner({ config, onClose, onBookAdded, existing
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cleanupInProgressRef = useRef(false);
   const processingISBNRef = useRef<Set<string>>(new Set()); // Track ISBNs currently being processed
+  const scannedBookIdsRef = useRef<Set<string>>(new Set()); // Track book IDs already scanned (edit mode)
   const [isScanning, setIsScanning] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [scannerId] = useState(() => `fast-scanner-${Date.now()}`);
@@ -264,14 +265,17 @@ export default function FastScanScanner({ config, onClose, onBookAdded, existing
         const foundBook = existingBooks.find(book => book.isbn === isbn);
 
         if (foundBook) {
-          // Check if already in foundBooks list
-          if (foundBooks.some(b => b.id === foundBook.id)) {
+          // Check if already scanned using ref (avoids state timing issues)
+          if (scannedBookIdsRef.current.has(foundBook.id)) {
             setBanner({ type: 'duplicate', message: 'Already scanned this book' });
             setTimeout(() => setBanner(null), 2000);
             processingISBNRef.current.delete(isbnKey);
             setIsProcessing(false);
             return;
           }
+
+          // Mark as scanned immediately
+          scannedBookIdsRef.current.add(foundBook.id);
 
           // Build changes preview
           const changes = buildChangesPreview(foundBook);
