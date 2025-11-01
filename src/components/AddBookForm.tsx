@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Book, BookFormData } from '../../types/book';
 import { User } from '../../types/user';
 import BarcodeScanner from './BarcodeScanner';
+import TagInput from './TagInput';
 
 interface AddBookFormProps {
   book?: Book | null;
@@ -23,6 +24,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
     times_read: 0,
     last_read: '',
     isbn: '',
+    tags: '',
   });
 
   const [isbnLookup, setIsbnLookup] = useState({
@@ -66,6 +68,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
         times_read: book.times_read,
         last_read: book.last_read || '',
         isbn: book.isbn || '',
+        tags: book.tags || '',
       });
     }
   }, [book]);
@@ -428,6 +431,14 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          {/* Tags */}
+          <TagInput
+            value={formData.tags || ''}
+            onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
+            label="Tags"
+            id="tags"
+          />
 
           {/* Form Actions */}
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">

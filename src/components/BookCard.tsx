@@ -1,6 +1,8 @@
 'use client';
 
 import { Book } from '../../types/book';
+import TagBadge from './TagBadge';
+import { parseTags } from '@/app/lib/tagUtils';
 
 interface BookCardProps {
   book: Book;
@@ -71,6 +73,15 @@ export default function BookCard({ book, onEdit, onDelete, onUpdateStatus }: Boo
             <option value="Lost">Lost</option>
           </select>
         </div>
+
+        {/* Tags Display */}
+        {book.tags && parseTags(book.tags).length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {parseTags(book.tags).map((tag, index) => (
+              <TagBadge key={`${tag}-${index}`} tag={tag} />
+            ))}
+          </div>
+        )}
 
         <div className="text-sm text-gray-600">
           <p><span className="font-medium">Owner:</span> {book.owner}</p>

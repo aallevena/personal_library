@@ -7,6 +7,7 @@ import BookCard from './BookCard';
 import AddBookForm from './AddBookForm';
 import FastScanModal from './FastScanModal';
 import FastScanScanner from './FastScanScanner';
+import { parseTags, extractUniqueTags } from '../app/lib/tagUtils';
 
 interface BookLibraryProps {
   initialBooks?: Book[];
@@ -24,6 +25,8 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [possessorFilter, setPossessorFilter] = useState<string>('all');
   const [showFastScan, setShowFastScan] = useState(false);
   const [fastScanDefaults, setFastScanDefaults] = useState<BookFormData | null>(null);
+  const [tagFilter, setTagFilter] = useState<string>('all');
+  const [tagSearch, setTagSearch] = useState<string>('');
 
   useEffect(() => {
     fetchBooks();
@@ -128,10 +131,37 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     }
   };
 
+  // Get all unique tags from books
+  const allBookTags = extractUniqueTags(books);
+
   const filteredBooks = books
     .filter(book => filter === 'all' || book.state === filter)
     .filter(book => ownerFilter === 'all' || book.owner === ownerFilter)
-    .filter(book => possessorFilter === 'all' || book.current_possessor === possessorFilter);
+    .filter(book => possessorFilter === 'all' || book.current_possessor === possessorFilter)
+    .filter(book => {
+      // Tag dropdown filter
+      if (tagFilter !== 'all') {
+        const bookTags = parseTags(book.tags || '');
+        if (!bookTags.includes(tagFilter)) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .filter(book => {
+      // Tag search filter
+      if (tagSearch.trim()) {
+        const bookTags = parseTags(book.tags || '');
+        const searchLower = tagSearch.toLowerCase();
+        const hasMatchingTag = bookTags.some(tag =>
+          tag.toLowerCase().includes(searchLower)
+        );
+        if (!hasMatchingTag) {
+          return false;
+        }
+      }
+      return true;
+    });
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -195,6 +225,29 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
                   </option>
                 ))}
               </select>
+
+              {allBookTags.length > 0 && (
+                <>
+                  <select
+                    value={tagFilter}
+                    onChange={(e) => setTagFilter(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 min-h-[44px] touch-manipulation"
+                  >
+                    <option value="all">All Tags</option>
+                    {allBookTags.map((tag) => (
+                      <option key={tag} value={tag}>{tag}</option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="text"
+                    value={tagSearch}
+                    onChange={(e) => setTagSearch(e.target.value)}
+                    placeholder="Search tags..."
+                    className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 min-h-[44px] touch-manipulation"
+                  />
+                </>
+              )}
             </div>
 
             <div className="text-sm text-gray-600 self-start sm:self-center">

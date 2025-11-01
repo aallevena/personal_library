@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { User, UserFormData } from '../../types/user';
+import TagInput from './TagInput';
 
 interface AddUserFormProps {
   onSuccess: (user: User) => void;
@@ -11,6 +12,7 @@ interface AddUserFormProps {
 export default function AddUserForm({ onSuccess, onCancel }: AddUserFormProps) {
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
+    tags: '',
   });
 
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -104,6 +106,14 @@ export default function AddUserForm({ onSuccess, onCancel }: AddUserFormProps) {
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          {/* Tags */}
+          <TagInput
+            value={formData.tags || ''}
+            onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
+            label="Tags"
+            id="tags"
+          />
 
           {/* Form Actions */}
           <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">

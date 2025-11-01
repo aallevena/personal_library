@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, updateUser, deleteUser, reassignUserBooks, getAllBooks } from '../../../lib/db';
+import { validateTags, normalizeTags } from '../../../lib/tagUtils';
 
 interface RouteParams {
   params: Promise<{
@@ -47,6 +48,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Validate tags field if provided
+    if (body.tags !== undefined) {
+      const tagValidation = validateTags(body.tags);
+      if (!tagValidation.isValid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: tagValidation.error || 'Invalid tags format'
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check if user exists
     const existingUser = await getUserById(id);
     if (!existingUser) {
@@ -56,7 +71,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const updatedUser = await updateUser(id, { name: body.name.trim() });
+    // Build update object
+    const updateData: { name: string; tags?: string } = {
+      name: body.name.trim()
+    };
+
+    if (body.tags !== undefined) {
+      updateData.tags = normalizeTags(body.tags) || undefined;
+    }
+
+    const updatedUser = await updateUser(id, updateData);
 
     return NextResponse.json({
       success: true,

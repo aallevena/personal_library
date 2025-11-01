@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { User, Book } from '../app/lib/db';
 import AddUserForm from './AddUserForm';
+import TagBadge from './TagBadge';
+import { parseTags, extractUniqueTags } from '../app/lib/tagUtils';
 
 interface UserWithStats extends User {
   booksOwned: number;
@@ -18,6 +20,8 @@ export default function UsersPage() {
   const [editingName, setEditingName] = useState('');
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [reassignUserId, setReassignUserId] = useState<string>('');
+  const [tagFilter, setTagFilter] = useState<string>('all');
+  const [tagSearch, setTagSearch] = useState<string>('');
 
   useEffect(() => {
     fetchUsers();
@@ -164,6 +168,34 @@ export default function UsersPage() {
   const deletingUser = users.find(u => u.id === deletingUserId);
   const availableUsersForReassign = users.filter(u => u.id !== deletingUserId);
 
+  // Get all unique tags from users
+  const allUserTags = extractUniqueTags(users);
+
+  // Filter users by tag
+  const filteredUsers = users.filter(user => {
+    // Tag dropdown filter
+    if (tagFilter !== 'all') {
+      const userTags = parseTags(user.tags || '');
+      if (!userTags.includes(tagFilter)) {
+        return false;
+      }
+    }
+
+    // Tag search filter
+    if (tagSearch.trim()) {
+      const userTags = parseTags(user.tags || '');
+      const searchLower = tagSearch.toLowerCase();
+      const hasMatchingTag = userTags.some(tag =>
+        tag.toLowerCase().includes(searchLower)
+      );
+      if (!hasMatchingTag) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
   return (
     <div className="p-4">
       {/* Header */}
@@ -177,8 +209,75 @@ export default function UsersPage() {
         </button>
       </div>
 
+      {/* Tag Filters */}
+      {allUserTags.length > 0 && (
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Tag Dropdown Filter */}
+            <div>
+              <label htmlFor="tagFilter" className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Tag
+              </label>
+              <select
+                id="tagFilter"
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 min-h-[44px]"
+              >
+                <option value="all">All Tags</option>
+                {allUserTags.map((tag) => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tag Search */}
+            <div>
+              <label htmlFor="tagSearch" className="block text-sm font-medium text-gray-700 mb-2">
+                Search Tags
+              </label>
+              <input
+                type="text"
+                id="tagSearch"
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+                placeholder="Search by tag..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 min-h-[44px]"
+              />
+            </div>
+          </div>
+
+          {/* Active Filters Display */}
+          {(tagFilter !== 'all' || tagSearch.trim()) && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-sm text-gray-600">Active filters:</span>
+              {tagFilter !== 'all' && (
+                <button
+                  onClick={() => setTagFilter('all')}
+                  className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200"
+                >
+                  {tagFilter} ×
+                </button>
+              )}
+              {tagSearch.trim() && (
+                <button
+                  onClick={() => setTagSearch('')}
+                  className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200"
+                >
+                  Search: "{tagSearch}" ×
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Users Table */}
-      {users.length === 0 ? (
+      {filteredUsers.length === 0 && users.length > 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          No users match the selected filters.
+        </div>
+      ) : users.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           No users yet. Add your first user to get started!
         </div>
@@ -188,6 +287,7 @@ export default function UsersPage() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left p-4 font-semibold text-gray-700">Name</th>
+                <th className="text-left p-4 font-semibold text-gray-700">Tags</th>
                 <th className="text-left p-4 font-semibold text-gray-700">Books Owned</th>
                 <th className="text-left p-4 font-semibold text-gray-700">Books Possessed</th>
                 <th className="text-left p-4 font-semibold text-gray-700">Created</th>
@@ -195,7 +295,7 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="p-4">
                     {editingUserId === user.id ? (
@@ -228,6 +328,17 @@ export default function UsersPage() {
                         <span className="font-medium text-gray-900">{user.name}</span>
                         <span className="text-gray-400 text-sm">✎</span>
                       </div>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {user.tags && parseTags(user.tags).length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {parseTags(user.tags).map((tag, index) => (
+                          <TagBadge key={`${tag}-${index}`} tag={tag} />
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">No tags</span>
                     )}
                   </td>
                   <td className="p-4 text-gray-900">{user.booksOwned}</td>

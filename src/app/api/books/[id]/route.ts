@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBookById, updateBook, deleteBook } from '@/app/lib/db';
 import { BookFormData } from '../../../../../types/book';
+import { validateTags, normalizeTags } from '@/app/lib/tagUtils';
 
 // GET /api/books/[id] - Get a specific book
 export async function GET(
@@ -65,9 +66,23 @@ export async function PUT(
       const validStates = ['In library', 'Checked out', 'Lost'];
       if (!validStates.includes(body.state)) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Invalid state. Must be one of: In library, Checked out, Lost' 
+          {
+            success: false,
+            error: 'Invalid state. Must be one of: In library, Checked out, Lost'
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate tags field if provided
+    if (body.tags !== undefined) {
+      const tagValidation = validateTags(body.tags);
+      if (!tagValidation.isValid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: tagValidation.error || 'Invalid tags format'
           },
           { status: 400 }
         );
@@ -95,6 +110,7 @@ export async function PUT(
     if (body.times_read !== undefined) sanitizedData.times_read = body.times_read;
     if (body.last_read !== undefined) sanitizedData.last_read = body.last_read?.trim() || undefined;
     if (body.isbn !== undefined) sanitizedData.isbn = body.isbn?.trim() || undefined;
+    if (body.tags !== undefined) sanitizedData.tags = normalizeTags(body.tags) || undefined;
 
     // Update the book
     const updatedBook = await updateBook(id, sanitizedData);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllBooks, createBook } from '@/app/lib/db';
 import { BookFormData } from '../../../../types/book';
+import { validateTags, normalizeTags } from '@/app/lib/tagUtils';
 
 // GET /api/books - Retrieve all books
 export async function GET() {
@@ -48,9 +49,21 @@ export async function POST(request: NextRequest) {
     const validStates = ['In library', 'Checked out', 'Lost'];
     if (!validStates.includes(body.state)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid state. Must be one of: In library, Checked out, Lost' 
+        {
+          success: false,
+          error: 'Invalid state. Must be one of: In library, Checked out, Lost'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate tags field
+    const tagValidation = validateTags(body.tags);
+    if (!tagValidation.isValid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: tagValidation.error || 'Invalid tags format'
         },
         { status: 400 }
       );
@@ -89,7 +102,8 @@ export async function POST(request: NextRequest) {
       times_read: body.times_read || 0,
       last_read: validateDate(body.last_read),
       date_added: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
-      isbn: body.isbn?.trim() || undefined
+      isbn: body.isbn?.trim() || undefined,
+      tags: normalizeTags(body.tags) || undefined
     };
 
     const newBook = await createBook(bookData);

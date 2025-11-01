@@ -11,6 +11,7 @@ export interface Book {
   last_read?: string;
   date_added: string;
   isbn?: string;
+  tags?: string;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +27,7 @@ export interface BookFormData {
   times_read: number;
   last_read?: string;
   isbn?: string;
+  tags?: string;
 }
 
 export interface OpenLibraryBook {

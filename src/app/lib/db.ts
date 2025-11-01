@@ -24,6 +24,7 @@ export interface Book {
   last_read?: string;
   date_added: string;
   isbn?: string;
+  tags?: string;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +32,7 @@ export interface Book {
 export interface User {
   id: string;
   name: string;
+  tags?: string;
   created_at: string;
   updated_at: string;
 }
@@ -63,6 +65,7 @@ export async function initializeDatabase() {
           last_read TEXT,
           date_added TEXT NOT NULL DEFAULT (date('now')),
           isbn TEXT,
+          tags TEXT,
           created_at TEXT DEFAULT (datetime('now')),
           updated_at TEXT DEFAULT (datetime('now')),
           UNIQUE(isbn, owner)
@@ -73,6 +76,7 @@ export async function initializeDatabase() {
         CREATE TABLE IF NOT EXISTS users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL,
+          tags TEXT,
           created_at TEXT DEFAULT (datetime('now')),
           updated_at TEXT DEFAULT (datetime('now'))
         )
@@ -105,6 +109,7 @@ export async function initializeDatabase() {
           last_read DATE,
           date_added DATE NOT NULL DEFAULT CURRENT_DATE,
           isbn TEXT,
+          tags TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(isbn, owner)
@@ -115,6 +120,7 @@ export async function initializeDatabase() {
         CREATE TABLE IF NOT EXISTS users (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           name TEXT NOT NULL,
+          tags TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -174,13 +180,13 @@ export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated
   try {
     if (USE_SQLITE && db) {
       const stmt = db.prepare(`
-        INSERT INTO books (title, author, publish_date, summary, state, owner, current_possessor, times_read, last_read, date_added, isbn)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO books (title, author, publish_date, summary, state, owner, current_possessor, times_read, last_read, date_added, isbn, tags)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const result = stmt.run(
         book.title, book.author, book.publish_date, book.summary,
         book.state, book.owner, book.current_possessor, book.times_read,
-        book.last_read, book.date_added, book.isbn
+        book.last_read, book.date_added, book.isbn, book.tags
       );
       const newBook = db.prepare('SELECT * FROM books WHERE id = ?').get(result.lastInsertRowid) as Omit<Book, 'id'> & { id: number };
       return { ...newBook, id: String(newBook.id) };
@@ -188,11 +194,11 @@ export async function createBook(book: Omit<Book, 'id' | 'created_at' | 'updated
     const { rows } = await sql<Book>`
       INSERT INTO books (
         title, author, publish_date, summary, state, owner,
-        current_possessor, times_read, last_read, date_added, isbn
+        current_possessor, times_read, last_read, date_added, isbn, tags
       ) VALUES (
         ${book.title}, ${book.author}, ${book.publish_date}, ${book.summary},
         ${book.state}, ${book.owner}, ${book.current_possessor}, ${book.times_read},
-        ${book.last_read}, ${book.date_added}, ${book.isbn}
+        ${book.last_read}, ${book.date_added}, ${book.isbn}, ${book.tags}
       )
       RETURNING *
     `;
@@ -277,6 +283,7 @@ export async function updateBook(id: string, updates: Partial<Omit<Book, 'id' | 
         last_read = ${updatedData.last_read || null},
         date_added = ${updatedData.date_added},
         isbn = ${updatedData.isbn || null},
+        tags = ${updatedData.tags || null},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
       RETURNING *
@@ -341,16 +348,16 @@ export async function createUser(userData: Omit<User, 'id' | 'created_at' | 'upd
   try {
     if (USE_SQLITE && db) {
       const stmt = db.prepare(`
-        INSERT INTO users (name)
-        VALUES (?)
+        INSERT INTO users (name, tags)
+        VALUES (?, ?)
       `);
-      const result = stmt.run(userData.name);
+      const result = stmt.run(userData.name, userData.tags);
       const newUser = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid) as Omit<User, 'id'> & { id: number };
       return { ...newUser, id: String(newUser.id) };
     }
     const { rows } = await sql<User>`
-      INSERT INTO users (name)
-      VALUES (${userData.name})
+      INSERT INTO users (name, tags)
+      VALUES (${userData.name}, ${userData.tags})
       RETURNING *
     `;
     return rows[0];
@@ -430,10 +437,22 @@ export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 
       return { ...updated, id: String(updated.id) };
     }
 
+    // Get current user data to merge with updates
+    const currentUserData = await getUserById(id);
+    if (!currentUserData) {
+      throw new Error('User not found');
+    }
+
+    const updatedData = {
+      ...currentUserData,
+      ...updates
+    };
+
     const { rows } = await sql<User>`
       UPDATE users
       SET
-        name = ${updates.name},
+        name = ${updatedData.name},
+        tags = ${updatedData.tags || null},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
       RETURNING *

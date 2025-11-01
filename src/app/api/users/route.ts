@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllUsers, createUser } from '@/app/lib/db';
 import { UserFormData } from '../../../../types/user';
+import { validateTags, normalizeTags } from '@/app/lib/tagUtils';
 
 // GET /api/users - Retrieve all users
 export async function GET() {
@@ -38,9 +39,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate tags field if provided
+    const tagValidation = validateTags(body.tags);
+    if (!tagValidation.isValid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: tagValidation.error || 'Invalid tags format'
+        },
+        { status: 400 }
+      );
+    }
+
     // Create the user
     const userData = {
-      name: body.name.trim()
+      name: body.name.trim(),
+      tags: normalizeTags(body.tags) || undefined
     };
 
     const newUser = await createUser(userData);
