@@ -158,6 +158,7 @@ CREATE TABLE audit_logs (
 - PL-23 #feature Add user filter bar at the top of Analytics page to filter statistics by specific user (show only that user's books). ✅
 - PL-24 #bug User rename orphans books: Fixed by updating all books (owner and current_possessor fields) when user name changes. ✅
 - PL-13 #feature Audit log for analytics: Capture events when status, owner, or possessor changes, or when read count is incremented. ✅
+- PL-25 #feature Add tags field to books and users: Space-separated hashtags for categorizing and filtering books/users. Includes validation, display badges, and filtering (dropdown + search) on both Books and Users pages. ✅
 
 ## Feature Backlog
 *Use PL-XXX format for ticket tracking (e.g., PL-001, PL-002)*
@@ -167,7 +168,6 @@ CREATE TABLE audit_logs (
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
-- PL-25 #feature Add tags field to books and users: Free text field for categorizing and labeling books and users with custom tags.
 - PL-26 #feature Mass Edit Mode: Similar to FastScan, but for bulk editing books. Scan multiple books and apply changes to all scanned items (e.g., mass tagging, mass checkout, mass increment read count, change owner/possessor). Intent is to streamline bulk operations on multiple books at once.
 
 <!-- Add new feature tickets below -->
