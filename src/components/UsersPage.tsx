@@ -264,7 +264,7 @@ export default function UsersPage() {
                   onClick={() => setTagSearch('')}
                   className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200"
                 >
-                  Search: "{tagSearch}" ×
+                  Search: &quot;{tagSearch}&quot; ×
                 </button>
               )}
             </div>
