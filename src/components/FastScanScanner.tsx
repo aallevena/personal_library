@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Book, BookFormData } from '../../types/book';
 import { User } from '../../types/user';
 import { Html5Qrcode } from 'html5-qrcode';
+import { ScanConfig } from './FastScanModal';
+import { parseTags } from '../app/lib/tagUtils';
 
 interface FastScanScannerProps {
-  defaults: BookFormData;
+  config: ScanConfig;
   onClose: () => void;
   onBookAdded: (book: Book) => void;
   existingBooks: Book[];
@@ -17,6 +19,12 @@ interface ScanStats {
   added: number;
   duplicates: number;
   errors: number;
+  found?: number; // For edit mode
+  notFound?: number; // For edit mode
+}
+
+interface BookWithChanges extends Book {
+  changes: string[]; // Array of change descriptions for preview
 }
 
 type BannerType = 'adding' | 'added' | 'duplicate' | 'error' | 'api-error';
@@ -26,15 +34,25 @@ interface BannerState {
   message: string;
 }
 
-export default function FastScanScanner({ defaults, onClose, onBookAdded, existingBooks }: FastScanScannerProps) {
-  const [currentDefaults, setCurrentDefaults] = useState<BookFormData>(defaults);
-  const [stats, setStats] = useState<ScanStats>({ scanned: 0, added: 0, duplicates: 0, errors: 0 });
+export default function FastScanScanner({ config, onClose, onBookAdded, existingBooks }: FastScanScannerProps) {
+  const [currentDefaults, setCurrentDefaults] = useState<BookFormData>(config.defaults);
+  const [stats, setStats] = useState<ScanStats>(
+    config.mode === 'add'
+      ? { scanned: 0, added: 0, duplicates: 0, errors: 0, found: 0, notFound: 0 }
+      : { scanned: 0, added: 0, duplicates: 0, errors: 0, found: 0, notFound: 0 }
+  );
   const [banner, setBanner] = useState<BannerState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDefaultsEditor, setShowDefaultsEditor] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [addedBooks, setAddedBooks] = useState<Book[]>([]); // Track books added in this session
+  const [addedBooks, setAddedBooks] = useState<Book[]>([]); // Track books added in this session (Add mode)
+
+  // Edit mode specific state
+  const [foundBooks, setFoundBooks] = useState<BookWithChanges[]>([]); // Books found for editing
+  const [notFoundISBNs, setNotFoundISBNs] = useState<string[]>([]); // ISBNs not found in library
+  const [showReview, setShowReview] = useState(false); // Show review screen
+  const [isApplying, setIsApplying] = useState(false); // Applying batch changes
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cleanupInProgressRef = useRef(false);
@@ -75,6 +93,50 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
     );
   };
 
+  const buildChangesPreview = (book: Book): string[] => {
+    const changes: string[] = [];
+    const { editFields } = config;
+
+    if (!editFields) return changes;
+
+    if (editFields.state && currentDefaults.state !== book.state) {
+      changes.push(`State: ${book.state} → ${currentDefaults.state}`);
+    }
+
+    if (editFields.owner && currentDefaults.owner !== book.owner) {
+      changes.push(`Owner: ${book.owner} → ${currentDefaults.owner}`);
+    }
+
+    if (editFields.current_possessor && currentDefaults.current_possessor !== book.current_possessor) {
+      changes.push(`Possessor: ${book.current_possessor} → ${currentDefaults.current_possessor}`);
+    }
+
+    if (editFields.times_read?.enabled) {
+      const incrementBy = editFields.times_read.incrementBy;
+      const newValue = book.times_read + incrementBy;
+      changes.push(`Times Read: ${book.times_read} → ${newValue} (+${incrementBy})`);
+    }
+
+    if (editFields.last_read && currentDefaults.last_read !== book.last_read) {
+      changes.push(`Last Read: ${book.last_read || 'None'} → ${currentDefaults.last_read}`);
+    }
+
+    if (editFields.tags?.enabled) {
+      const mode = editFields.tags.mode;
+      const bookTags = parseTags(book.tags || '');
+      const newTags = parseTags(currentDefaults.tags || '');
+
+      if (mode === 'append') {
+        const combined = [...new Set([...bookTags, ...newTags])];
+        changes.push(`Tags: ${combined.join(' ')} (appended)`);
+      } else {
+        changes.push(`Tags: ${bookTags.join(' ') || 'None'} → ${newTags.join(' ')} (replaced)`);
+      }
+    }
+
+    return changes;
+  };
+
   const handleScanSuccess = async (isbn: string) => {
     if (!validateISBN(isbn)) {
       return;
@@ -86,7 +148,7 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
     }
 
     // Prevent duplicate processing of the same ISBN
-    const isbnKey = `${isbn}-${currentDefaults.owner}`;
+    const isbnKey = `${isbn}`;
     if (processingISBNRef.current.has(isbnKey)) {
       return;
     }
@@ -97,102 +159,233 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
 
     setStats(prev => ({ ...prev, scanned: prev.scanned + 1 }));
 
-    // Check for duplicate
-    if (checkDuplicate(isbn, currentDefaults.owner)) {
-      setBanner({ type: 'duplicate', message: 'Duplicate book skipped (same ISBN + Owner)' });
-      setStats(prev => ({ ...prev, duplicates: prev.duplicates + 1 }));
-      processingISBNRef.current.delete(isbnKey);
-      setIsProcessing(false);
-      setTimeout(() => setBanner(null), 2000);
-      return;
-    }
+    if (config.mode === 'add') {
+      // ADD MODE - Original behavior
+      // Check for duplicate
+      if (checkDuplicate(isbn, currentDefaults.owner)) {
+        setBanner({ type: 'duplicate', message: 'Duplicate book skipped (same ISBN + Owner)' });
+        setStats(prev => ({ ...prev, duplicates: (prev.duplicates || 0) + 1 }));
+        processingISBNRef.current.delete(isbnKey);
+        setIsProcessing(false);
+        setTimeout(() => setBanner(null), 2000);
+        return;
+      }
 
-    // Show "Adding book..." banner
-    setBanner({ type: 'adding', message: 'Adding book...' });
+      // Show "Adding book..." banner
+      setBanner({ type: 'adding', message: 'Adding book...' });
 
-    try {
-      // Fetch book details from Open Library API
-      const apiResponse = await fetch(`/api/isbn/${isbn}`);
-      const apiData = await apiResponse.json();
+      try {
+        // Fetch book details from Open Library API
+        const apiResponse = await fetch(`/api/isbn/${isbn}`);
+        const apiData = await apiResponse.json();
 
-      let bookData: BookFormData = {
-        ...currentDefaults,
-        isbn,
-      };
-
-      if (apiData.success && apiData.book) {
-        // Merge API data with defaults (API data takes precedence for title, author, etc.)
-        bookData = {
+        let bookData: BookFormData = {
           ...currentDefaults,
           isbn,
-          title: apiData.book.title || currentDefaults.title,
-          author: apiData.book.author || currentDefaults.author,
-          publish_date: apiData.book.publish_date || currentDefaults.publish_date,
-          summary: apiData.book.summary || currentDefaults.summary,
         };
-      } else {
-        // API lookup failed - show banner but continue
-        setBanner({ type: 'api-error', message: 'Book not found in API, continuing scan...' });
-        setTimeout(() => setBanner(null), 2000);
-      }
 
-      // Create the book
-      const createResponse = await fetch('/api/books', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookData),
-      });
-
-      const createData = await createResponse.json();
-
-      if (createResponse.ok && createData.success) {
-        setBanner({ type: 'added', message: `Book added! (${stats.added + 1} total)` });
-        setStats(prev => ({ ...prev, added: prev.added + 1 }));
-        setAddedBooks(prev => [...prev, createData.book]); // Track this book
-        onBookAdded(createData.book);
-        setTimeout(() => setBanner(null), 1500);
-      } else {
-        // Handle specific error types
-        const errorMsg = createData.error || 'Failed to add book';
-
-        // Check if it's a duplicate/constraint error
-        if (errorMsg.toLowerCase().includes('duplicate') ||
-            errorMsg.toLowerCase().includes('already exists') ||
-            errorMsg.toLowerCase().includes('unique constraint')) {
-          setBanner({ type: 'duplicate', message: `Duplicate: Book already exists (ISBN: ${isbn.slice(-4)})` });
-          setStats(prev => ({ ...prev, duplicates: prev.duplicates + 1 }));
-          setTimeout(() => setBanner(null), 2000);
-        } else if (errorMsg.toLowerCase().includes('required') ||
-                   errorMsg.toLowerCase().includes('missing') ||
-                   errorMsg.toLowerCase().includes('cannot be empty')) {
-          setBanner({ type: 'error', message: `Validation error: ${errorMsg}` });
-          setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
-          setTimeout(() => setBanner(null), 3000);
+        if (apiData.success && apiData.book) {
+          // Merge API data with defaults (API data takes precedence for title, author, etc.)
+          bookData = {
+            ...currentDefaults,
+            isbn,
+            title: apiData.book.title || currentDefaults.title,
+            author: apiData.book.author || currentDefaults.author,
+            publish_date: apiData.book.publish_date || currentDefaults.publish_date,
+            summary: apiData.book.summary || currentDefaults.summary,
+          };
         } else {
-          setBanner({ type: 'error', message: `Failed to save: ${errorMsg}` });
-          setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
-          setTimeout(() => setBanner(null), 3000);
+          // API lookup failed - show banner but continue
+          setBanner({ type: 'api-error', message: 'Book not found in API, continuing scan...' });
+          setTimeout(() => setBanner(null), 2000);
         }
-      }
-    } catch (error) {
-      console.error('Error adding book:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
 
-      // More specific error messages
-      if (errorMsg.includes('fetch')) {
-        setBanner({ type: 'error', message: 'Network error: Could not reach server' });
-      } else if (errorMsg.includes('JSON')) {
-        setBanner({ type: 'error', message: 'Data error: Invalid response from server' });
-      } else {
-        setBanner({ type: 'error', message: `System error: ${errorMsg}` });
-      }
+        // Create the book
+        const createResponse = await fetch('/api/books', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bookData),
+        });
 
-      setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
-      setTimeout(() => setBanner(null), 3000);
-    } finally {
-      processingISBNRef.current.delete(isbnKey);
-      setIsProcessing(false);
+        const createData = await createResponse.json();
+
+        if (createResponse.ok && createData.success) {
+          setBanner({ type: 'added', message: `Book added! (${(stats.added || 0) + 1} total)` });
+          setStats(prev => ({ ...prev, added: (prev.added || 0) + 1 }));
+          setAddedBooks(prev => [...prev, createData.book]); // Track this book
+          onBookAdded(createData.book);
+          setTimeout(() => setBanner(null), 1500);
+        } else {
+          // Handle specific error types
+          const errorMsg = createData.error || 'Failed to add book';
+
+          // Check if it's a duplicate/constraint error
+          if (errorMsg.toLowerCase().includes('duplicate') ||
+              errorMsg.toLowerCase().includes('already exists') ||
+              errorMsg.toLowerCase().includes('unique constraint')) {
+            setBanner({ type: 'duplicate', message: `Duplicate: Book already exists (ISBN: ${isbn.slice(-4)})` });
+            setStats(prev => ({ ...prev, duplicates: (prev.duplicates || 0) + 1 }));
+            setTimeout(() => setBanner(null), 2000);
+          } else if (errorMsg.toLowerCase().includes('required') ||
+                     errorMsg.toLowerCase().includes('missing') ||
+                     errorMsg.toLowerCase().includes('cannot be empty')) {
+            setBanner({ type: 'error', message: `Validation error: ${errorMsg}` });
+            setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
+            setTimeout(() => setBanner(null), 3000);
+          } else {
+            setBanner({ type: 'error', message: `Failed to save: ${errorMsg}` });
+            setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
+            setTimeout(() => setBanner(null), 3000);
+          }
+        }
+      } catch (error) {
+        console.error('Error adding book:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+
+        // More specific error messages
+        if (errorMsg.includes('fetch')) {
+          setBanner({ type: 'error', message: 'Network error: Could not reach server' });
+        } else if (errorMsg.includes('JSON')) {
+          setBanner({ type: 'error', message: 'Data error: Invalid response from server' });
+        } else {
+          setBanner({ type: 'error', message: `System error: ${errorMsg}` });
+        }
+
+        setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
+        setTimeout(() => setBanner(null), 3000);
+      } finally {
+        processingISBNRef.current.delete(isbnKey);
+        setIsProcessing(false);
+      }
+    } else {
+      // EDIT MODE - Look up book and collect for batch edit
+      try {
+        // Look up book in existing books
+        const foundBook = existingBooks.find(book => book.isbn === isbn);
+
+        if (foundBook) {
+          // Check if already in foundBooks list
+          if (foundBooks.some(b => b.id === foundBook.id)) {
+            setBanner({ type: 'duplicate', message: 'Already scanned this book' });
+            setTimeout(() => setBanner(null), 2000);
+            processingISBNRef.current.delete(isbnKey);
+            setIsProcessing(false);
+            return;
+          }
+
+          // Build changes preview
+          const changes = buildChangesPreview(foundBook);
+
+          if (changes.length === 0) {
+            setBanner({ type: 'api-error', message: 'No changes to apply (values already match)' });
+            setTimeout(() => setBanner(null), 2000);
+          } else {
+            const bookWithChanges: BookWithChanges = { ...foundBook, changes };
+            setFoundBooks(prev => [...prev, bookWithChanges]);
+            setStats(prev => ({ ...prev, found: (prev.found || 0) + 1 }));
+            setBanner({ type: 'added', message: `Book found! (${(stats.found || 0) + 1} ready to edit)` });
+            setTimeout(() => setBanner(null), 1500);
+          }
+        } else {
+          // Book not found in library
+          if (!notFoundISBNs.includes(isbn)) {
+            setNotFoundISBNs(prev => [...prev, isbn]);
+            setStats(prev => ({ ...prev, notFound: (prev.notFound || 0) + 1 }));
+          }
+          setBanner({ type: 'error', message: `Book not found in library (ISBN: ${isbn.slice(-4)})` });
+          setTimeout(() => setBanner(null), 2000);
+        }
+      } catch (error) {
+        console.error('Error looking up book:', error);
+        setBanner({ type: 'error', message: 'Error looking up book' });
+        setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
+        setTimeout(() => setBanner(null), 2000);
+      } finally {
+        processingISBNRef.current.delete(isbnKey);
+        setIsProcessing(false);
+      }
     }
+  };
+
+  const applyBatchChanges = async () => {
+    setIsApplying(true);
+    await stopScanner(); // Stop scanning before applying
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const bookWithChanges of foundBooks) {
+      try {
+        const { editFields } = config;
+        if (!editFields) continue;
+
+        const updates: Partial<Book> = {};
+
+        // Build updates based on selected fields
+        if (editFields.state) {
+          updates.state = currentDefaults.state;
+        }
+
+        if (editFields.owner) {
+          updates.owner = currentDefaults.owner;
+        }
+
+        if (editFields.current_possessor) {
+          updates.current_possessor = currentDefaults.current_possessor;
+        }
+
+        if (editFields.times_read?.enabled) {
+          updates.times_read = bookWithChanges.times_read + editFields.times_read.incrementBy;
+        }
+
+        if (editFields.last_read) {
+          updates.last_read = currentDefaults.last_read;
+        }
+
+        if (editFields.tags?.enabled) {
+          const mode = editFields.tags.mode;
+          const bookTags = parseTags(bookWithChanges.tags || '');
+          const newTags = parseTags(currentDefaults.tags || '');
+
+          if (mode === 'append') {
+            const combined = [...new Set([...bookTags, ...newTags])];
+            updates.tags = combined.join(' ');
+          } else {
+            updates.tags = currentDefaults.tags;
+          }
+        }
+
+        // Apply the update
+        const response = await fetch(`/api/books/${bookWithChanges.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          errorCount++;
+          console.error(`Failed to update book ${bookWithChanges.id}`);
+        }
+      } catch (error) {
+        errorCount++;
+        console.error('Error updating book:', error);
+      }
+    }
+
+    setIsApplying(false);
+
+    // Show result banner
+    if (errorCount === 0) {
+      setBanner({ type: 'added', message: `Success! Updated ${successCount} book(s)` });
+    } else {
+      setBanner({ type: 'error', message: `Updated ${successCount}, failed ${errorCount}` });
+    }
+
+    setTimeout(() => {
+      onClose(); // Close and refresh
+    }, 2000);
   };
 
   const startScanner = async () => {
@@ -340,35 +533,67 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
           )}
 
           {/* Statistics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-700">{stats.scanned}</div>
-              <div className="text-sm text-blue-600">Scanned</div>
+          {config.mode === 'add' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-blue-700">{stats.scanned}</div>
+                <div className="text-sm text-blue-600">Scanned</div>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-green-700">{stats.added || 0}</div>
+                <div className="text-sm text-green-600">Added</div>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-yellow-700">{stats.duplicates || 0}</div>
+                <div className="text-sm text-yellow-600">Duplicates</div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-red-700">{stats.errors}</div>
+                <div className="text-sm text-red-600">Errors</div>
+              </div>
             </div>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-green-700">{stats.added}</div>
-              <div className="text-sm text-green-600">Added</div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-blue-700">{stats.scanned}</div>
+                <div className="text-sm text-blue-600">Scanned</div>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-green-700">{stats.found || 0}</div>
+                <div className="text-sm text-green-600">Found</div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-red-700">{stats.notFound || 0}</div>
+                <div className="text-sm text-red-600">Not Found</div>
+              </div>
             </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-700">{stats.duplicates}</div>
-              <div className="text-sm text-yellow-600">Duplicates</div>
+          )}
+
+          {/* Edit Mode: Review Changes Button */}
+          {config.mode === 'edit' && foundBooks.length > 0 && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowReview(true)}
+                className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium min-h-[44px] touch-manipulation"
+              >
+                Review & Apply Changes ({foundBooks.length} book{foundBooks.length !== 1 ? 's' : ''})
+              </button>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-red-700">{stats.errors}</div>
-              <div className="text-sm text-red-600">Errors</div>
-            </div>
-          </div>
+          )}
 
           {/* Edit Defaults Toggle */}
-          <div className="flex justify-between items-center">
-            <button
-              type="button"
-              onClick={() => setShowDefaultsEditor(!showDefaultsEditor)}
-              className="text-purple-600 hover:text-purple-700 font-medium text-sm"
-            >
-              {showDefaultsEditor ? '▼ Hide' : '▶ Edit'} Default Values
-            </button>
-          </div>
+          {config.mode === 'add' && (
+            <div className="flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => setShowDefaultsEditor(!showDefaultsEditor)}
+                className="text-purple-600 hover:text-purple-700 font-medium text-sm"
+              >
+                {showDefaultsEditor ? '▼ Hide' : '▶ Edit'} Default Values
+              </button>
+            </div>
+          )}
 
           {/* Defaults Editor */}
           {showDefaultsEditor && (
@@ -500,6 +725,114 @@ export default function FastScanScanner({ defaults, onClose, onBookAdded, existi
           )}
         </div>
       </div>
+
+      {/* Review Screen Modal - Edit Mode Only */}
+      {config.mode === 'edit' && showReview && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 space-y-4">
+              {/* Review Header */}
+              <div className="flex justify-between items-center border-b pb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Review Changes</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowReview(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Statistics Summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-blue-900">
+                  {foundBooks.length} book{foundBooks.length !== 1 ? 's' : ''} ready to update
+                  {notFoundISBNs.length > 0 && `, ${notFoundISBNs.length} not found`}
+                </p>
+              </div>
+
+              {/* Found Books */}
+              {foundBooks.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    ✓ Found Books ({foundBooks.length})
+                  </h3>
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                    {foundBooks.map((book) => (
+                      <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{book.title}</h4>
+                            {book.author && <p className="text-sm text-gray-600">{book.author}</p>}
+                            <p className="text-xs text-gray-500 mt-1">ISBN: {book.isbn}</p>
+                          </div>
+                        </div>
+                        {book.changes.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-xs font-medium text-gray-700 mb-2">Changes:</p>
+                            <ul className="space-y-1">
+                              {book.changes.map((change, idx) => (
+                                <li key={idx} className="text-sm text-blue-700 flex items-start gap-2">
+                                  <span className="text-blue-500 mt-0.5">→</span>
+                                  <span>{change}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Not Found ISBNs */}
+              {notFoundISBNs.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-red-900 mb-3">
+                    ⚠ Not Found ({notFoundISBNs.length})
+                  </h3>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-sm text-red-800 mb-2">
+                      These ISBNs were not found in your library:
+                    </p>
+                    <ul className="space-y-1">
+                      {notFoundISBNs.map((isbn) => (
+                        <li key={isbn} className="text-sm text-red-700 font-mono">
+                          • {isbn}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowReview(false)}
+                  disabled={isApplying}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium min-h-[44px] disabled:opacity-50"
+                >
+                  Continue Scanning
+                </button>
+                <button
+                  type="button"
+                  onClick={applyBatchChanges}
+                  disabled={isApplying || foundBooks.length === 0}
+                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium min-h-[44px] touch-manipulation"
+                >
+                  {isApplying ? 'Applying Changes...' : `Apply All Changes (${foundBooks.length})`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

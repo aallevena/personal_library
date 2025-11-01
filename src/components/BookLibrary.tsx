@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Book, BookFormData } from '../../types/book';
+import { Book } from '../../types/book';
 import { User } from '../../types/user';
 import BookCard from './BookCard';
 import AddBookForm from './AddBookForm';
-import FastScanModal from './FastScanModal';
+import FastScanModal, { ScanConfig } from './FastScanModal';
 import FastScanScanner from './FastScanScanner';
 import { parseTags, extractUniqueTags } from '../app/lib/tagUtils';
 
@@ -24,7 +24,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [ownerFilter, setOwnerFilter] = useState<string>('all');
   const [possessorFilter, setPossessorFilter] = useState<string>('all');
   const [showFastScan, setShowFastScan] = useState(false);
-  const [fastScanDefaults, setFastScanDefaults] = useState<BookFormData | null>(null);
+  const [scanConfig, setScanConfig] = useState<ScanConfig | null>(null);
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [tagSearch, setTagSearch] = useState<string>('');
 
@@ -308,22 +308,22 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
         />
       )}
 
-      {showFastScan && !fastScanDefaults && (
+      {showFastScan && !scanConfig && (
         <FastScanModal
           onClose={() => setShowFastScan(false)}
-          onStartScan={(defaults) => {
-            setFastScanDefaults(defaults);
+          onStartScan={(config) => {
+            setScanConfig(config);
           }}
         />
       )}
 
-      {showFastScan && fastScanDefaults && (
+      {showFastScan && scanConfig && (
         <FastScanScanner
-          defaults={fastScanDefaults}
+          config={scanConfig}
           existingBooks={books}
           onClose={() => {
             setShowFastScan(false);
-            setFastScanDefaults(null);
+            setScanConfig(null);
             fetchBooks(); // Refresh book list
           }}
           onBookAdded={handleAddBook}
