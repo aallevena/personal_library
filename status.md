@@ -165,11 +165,11 @@ CREATE TABLE audit_logs (
 ## Feature Backlog
 *Use PL-XXX format for ticket tracking (e.g., PL-001, PL-002)*
 - PL-5 #tech-debt Barcode Scanner: Remove timer-based workarounds in BarcodeScanner component. Replace setTimeout delays with proper React lifecycle hooks and state management to eliminate race conditions between React rendering and html5-qrcode library initialization.
-- PL-8 #feature Analytics page - have a page showing total number of books + pie chart of read vs unread and utilization rate (books lent out + books read / total books)
 - PL-9 #feature Add utilization rate to top of home page above where all the books are listed.
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
 - PL-28 #bug Remove publish date from the card display.
+- PL-29 #feature Clickable Analytics stat cards: Click any stat card (Total Books, In Library, Checked Out, Lost, Never Used) to navigate to Books tab with corresponding filter applied. Includes removable filter chips, user filter preservation, and shared filter state via React Context.
 
 <!-- Add new feature tickets below -->

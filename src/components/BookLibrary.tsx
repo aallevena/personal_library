@@ -8,12 +8,17 @@ import AddBookForm from './AddBookForm';
 import FastScanModal, { ScanConfig } from './FastScanModal';
 import FastScanScanner from './FastScanScanner';
 import { parseTags, extractUniqueTags } from '../app/lib/tagUtils';
+import { useFilter } from '../contexts/FilterContext';
+import { isBookNeverUsed } from '../app/lib/db';
+import FilterChips from './FilterChips';
 
 interface BookLibraryProps {
   initialBooks?: Book[];
 }
 
 export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
+  const { bookFilters, setBookFilters } = useFilter();
+
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,11 +32,29 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [scanConfig, setScanConfig] = useState<ScanConfig | null>(null);
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [tagSearch, setTagSearch] = useState<string>('');
+  const [neverUsedBookIds, setNeverUsedBookIds] = useState<Set<string>>(new Set());
+  const [checkingNeverUsed, setCheckingNeverUsed] = useState(false);
 
   useEffect(() => {
     fetchBooks();
     fetchUsers();
   }, []);
+
+  // Sync with FilterContext when coming from Analytics
+  useEffect(() => {
+    if (bookFilters.state) {
+      setFilter(bookFilters.state);
+    }
+    if (bookFilters.owner) {
+      setOwnerFilter(bookFilters.owner);
+    }
+    if (bookFilters.possessor) {
+      setPossessorFilter(bookFilters.possessor);
+    }
+    if (bookFilters.tags) {
+      setTagSearch(bookFilters.tags);
+    }
+  }, [bookFilters]);
 
   const fetchUsers = async () => {
     try {
@@ -51,7 +74,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     try {
       const response = await fetch('/api/books');
       const data = await response.json();
-      
+
       if (data.success) {
         setBooks(data.books);
       } else {
@@ -64,6 +87,31 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
       setLoading(false);
     }
   };
+
+  // Check which books are "never used" when specialFilter is active
+  useEffect(() => {
+    if (bookFilters.specialFilter === 'neverUsed' && books.length > 0) {
+      setCheckingNeverUsed(true);
+      Promise.all(books.map(book => isBookNeverUsed(book.id)))
+        .then(results => {
+          const neverUsedIds = new Set<string>();
+          books.forEach((book, index) => {
+            if (results[index]) {
+              neverUsedIds.add(book.id);
+            }
+          });
+          setNeverUsedBookIds(neverUsedIds);
+        })
+        .catch(err => {
+          console.error('Error checking never used books:', err);
+        })
+        .finally(() => {
+          setCheckingNeverUsed(false);
+        });
+    } else {
+      setNeverUsedBookIds(new Set());
+    }
+  }, [bookFilters.specialFilter, books]);
 
   const handleAddBook = (book: Book) => {
     setBooks(prev => [book, ...prev]);
@@ -115,9 +163,9 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
-        setBooks(prev => prev.map(book => 
+        setBooks(prev => prev.map(book =>
           book.id === id ? { ...book, state: newStatus } : book
         ));
       } else {
@@ -129,6 +177,31 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filter chip removal handlers
+  const handleRemoveStateFilter = () => {
+    setFilter('all');
+    setBookFilters({ ...bookFilters, state: 'all' });
+  };
+
+  const handleRemoveOwnerFilter = () => {
+    setOwnerFilter('all');
+    setBookFilters({ ...bookFilters, owner: undefined });
+  };
+
+  const handleRemovePossessorFilter = () => {
+    setPossessorFilter('all');
+    setBookFilters({ ...bookFilters, possessor: undefined });
+  };
+
+  const handleRemoveTagsFilter = () => {
+    setTagSearch('');
+    setBookFilters({ ...bookFilters, tags: undefined });
+  };
+
+  const handleRemoveSpecialFilter = () => {
+    setBookFilters({ ...bookFilters, specialFilter: null });
   };
 
   // Get all unique tags from books
@@ -159,6 +232,13 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
         if (!hasMatchingTag) {
           return false;
         }
+      }
+      return true;
+    })
+    .filter(book => {
+      // Special filter: Never Used
+      if (bookFilters.specialFilter === 'neverUsed') {
+        return neverUsedBookIds.has(book.id);
       }
       return true;
     });
@@ -255,6 +335,20 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
               {filter !== 'all' && ` (${filter.toLowerCase()})`}
             </div>
           </div>
+
+          {/* Filter Chips */}
+          <FilterChips
+            state={filter}
+            owner={ownerFilter !== 'all' ? ownerFilter : undefined}
+            possessor={possessorFilter !== 'all' ? possessorFilter : undefined}
+            tags={tagSearch || undefined}
+            specialFilter={bookFilters.specialFilter}
+            onRemoveState={handleRemoveStateFilter}
+            onRemoveOwner={handleRemoveOwnerFilter}
+            onRemovePossessor={handleRemovePossessorFilter}
+            onRemoveTags={handleRemoveTagsFilter}
+            onRemoveSpecialFilter={handleRemoveSpecialFilter}
+          />
         </div>
       </div>
 

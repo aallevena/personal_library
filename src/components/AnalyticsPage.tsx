@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Book, User, AuditLog } from '../app/lib/db';
 import NeverUsedChart from './NeverUsedChart';
+import { useFilter } from '../contexts/FilterContext';
 
 interface AnalyticsStats {
   totalBooks: number;
@@ -26,6 +27,8 @@ interface WeeklyDataPoint {
 }
 
 export default function AnalyticsPage() {
+  const { setSelectedTab, setBookFilters, clearBookFilters } = useFilter();
+
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +161,36 @@ export default function AnalyticsPage() {
     }
   };
 
+  // Handler for clicking stat cards
+  const handleCardClick = (filterType: 'all' | 'inLibrary' | 'checkedOut' | 'lost' | 'neverUsed') => {
+    // Preserve user filter if one is selected
+    const userFilter = selectedUser !== 'all' ? selectedUser : undefined;
+
+    switch (filterType) {
+      case 'all':
+        clearBookFilters();
+        if (userFilter) {
+          setBookFilters({ state: 'all', owner: userFilter, specialFilter: null });
+        }
+        break;
+      case 'inLibrary':
+        setBookFilters({ state: 'In library', owner: userFilter, specialFilter: null });
+        break;
+      case 'checkedOut':
+        setBookFilters({ state: 'Checked out', owner: userFilter, specialFilter: null });
+        break;
+      case 'lost':
+        setBookFilters({ state: 'Lost', owner: userFilter, specialFilter: null });
+        break;
+      case 'neverUsed':
+        setBookFilters({ state: 'all', owner: userFilter, specialFilter: 'neverUsed' });
+        break;
+    }
+
+    // Navigate to Books tab
+    setSelectedTab('books');
+  };
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -252,7 +285,10 @@ export default function AnalyticsPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {/* Total Books */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div
+          className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick('all')}
+        >
           <div className="text-sm text-gray-600 mb-1">
             {selectedUser === 'all' ? 'Total Books' : `Books Owned by ${selectedUser}`}
           </div>
@@ -260,25 +296,37 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Books In Library */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div
+          className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick('inLibrary')}
+        >
           <div className="text-sm text-gray-600 mb-1">In Library</div>
           <div className="text-3xl font-bold text-green-600">{stats.booksInLibrary}</div>
         </div>
 
         {/* Books Checked Out */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div
+          className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick('checkedOut')}
+        >
           <div className="text-sm text-gray-600 mb-1">Checked Out</div>
           <div className="text-3xl font-bold text-blue-600">{stats.booksCheckedOut}</div>
         </div>
 
         {/* Books Lost */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div
+          className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick('lost')}
+        >
           <div className="text-sm text-gray-600 mb-1">Lost</div>
           <div className="text-3xl font-bold text-red-600">{stats.booksLost}</div>
         </div>
 
         {/* Never Used Books */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div
+          className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick('neverUsed')}
+        >
           <div className="text-sm text-gray-600 mb-1">Never Used</div>
           {neverUsedLoading ? (
             <div className="text-sm text-gray-500">Loading...</div>
