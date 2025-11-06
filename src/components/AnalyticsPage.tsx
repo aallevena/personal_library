@@ -2,12 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import { Book, User, AuditLog } from '../app/lib/db';
+import NeverUsedChart from './NeverUsedChart';
 
 interface AnalyticsStats {
   totalBooks: number;
   booksInLibrary: number;
   booksCheckedOut: number;
   booksLost: number;
+}
+
+interface NeverUsedData {
+  count: number;
+  total: number;
+  percentage: number;
+}
+
+interface WeeklyDataPoint {
+  weekLabel: string;
+  weekEndDate: string;
+  neverUsedCount: number;
+  totalBooks: number;
+  percentage: number;
 }
 
 export default function AnalyticsPage() {
@@ -18,6 +33,11 @@ export default function AnalyticsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>('all');
 
+  // Never used stats
+  const [neverUsedData, setNeverUsedData] = useState<NeverUsedData | null>(null);
+  const [neverUsedWeeklyData, setNeverUsedWeeklyData] = useState<WeeklyDataPoint[]>([]);
+  const [neverUsedLoading, setNeverUsedLoading] = useState(false);
+
   // Audit log states
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -27,6 +47,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchData();
     fetchAuditLogs();
+    fetchNeverUsedData();
   }, []);
 
   useEffect(() => {
@@ -34,6 +55,10 @@ export default function AnalyticsPage() {
       calculateStats();
     }
   }, [selectedUser, books, users]);
+
+  useEffect(() => {
+    fetchNeverUsedData();
+  }, [selectedUser]);
 
   useEffect(() => {
     fetchAuditLogs();
@@ -82,6 +107,29 @@ export default function AnalyticsPage() {
     };
 
     setStats(analyticsStats);
+  };
+
+  const fetchNeverUsedData = async () => {
+    try {
+      setNeverUsedLoading(true);
+      const params = new URLSearchParams();
+
+      if (selectedUser !== 'all') {
+        params.append('user', selectedUser);
+      }
+
+      const response = await fetch(`/api/analytics/never-used?${params.toString()}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setNeverUsedData(data.current);
+        setNeverUsedWeeklyData(data.weekly || []);
+      }
+    } catch (err) {
+      console.error('Error fetching never-used data:', err);
+    } finally {
+      setNeverUsedLoading(false);
+    }
   };
 
   const fetchAuditLogs = async () => {
@@ -228,7 +276,29 @@ export default function AnalyticsPage() {
           <div className="text-sm text-gray-600 mb-1">Lost</div>
           <div className="text-3xl font-bold text-red-600">{stats.booksLost}</div>
         </div>
+
+        {/* Never Used Books */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="text-sm text-gray-600 mb-1">Never Used</div>
+          {neverUsedLoading ? (
+            <div className="text-sm text-gray-500">Loading...</div>
+          ) : neverUsedData ? (
+            <>
+              <div className="text-3xl font-bold text-orange-600">
+                {neverUsedData.count}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {neverUsedData.percentage}% of total
+              </div>
+            </>
+          ) : (
+            <div className="text-3xl font-bold text-gray-400">-</div>
+          )}
+        </div>
       </div>
+
+      {/* Never Used Books Chart */}
+      <NeverUsedChart data={neverUsedWeeklyData} loading={neverUsedLoading} />
 
       {/* Audit Log Section */}
       <div className="bg-white rounded-lg shadow p-6 mb-8">

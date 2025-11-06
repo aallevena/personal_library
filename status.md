@@ -170,5 +170,6 @@ CREATE TABLE audit_logs (
 - PL-15 #feature Search bar at the top for filtering on titles.
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
+- PL-28 #bug Remove publish date from the card display.
 
 <!-- Add new feature tickets below -->
