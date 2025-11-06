@@ -161,6 +161,8 @@ CREATE TABLE audit_logs (
 - PL-25 #feature Add tags field to books and users: Space-separated hashtags for categorizing and filtering books/users. Includes validation, display badges, and filtering (dropdown + search) on both Books and Users pages. ✅
 - PL-27 #bug FastScan Setup: Add tags field to FastScan setup modal so users can set default tags for bulk scanned books. ✅
 - PL-26 #feature Mass Edit Mode: Integrated into Fast Scan with mode toggle (Add Books / Edit Books). Scan multiple books, review changes with preview, and apply batch updates. Supports Times Read increment, Tags append/replace, and all book fields. Includes not found ISBN tracking. ✅
+- PL-8 #feature Never Used Analytics: Comprehensive analytics showing books that have never been read AND never checked out. Includes current stats card, 12-week historical trend chart with Recharts, and full user filter support. Reconstructs historical state from audit logs. ✅
+- PL-29 #feature Clickable Analytics stat cards: Click any stat card (Total Books, In Library, Checked Out, Lost, Never Used) to navigate to Books tab with corresponding filter applied. Includes FilterContext for shared state, removable filter chips, user filter preservation, and hover effects. ✅
 
 ## Feature Backlog
 *Use PL-XXX format for ticket tracking (e.g., PL-001, PL-002)*
@@ -170,6 +172,5 @@ CREATE TABLE audit_logs (
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
 - PL-28 #bug Remove publish date from the card display.
-- PL-29 #feature Clickable Analytics stat cards: Click any stat card (Total Books, In Library, Checked Out, Lost, Never Used) to navigate to Books tab with corresponding filter applied. Includes removable filter chips, user filter preservation, and shared filter state via React Context.
 
 <!-- Add new feature tickets below -->
