@@ -66,6 +66,8 @@ interface BookForSnapshot {
   id: string;
   date_added: string;
   times_read: number;
+  owner: string;
+  current_possessor: string;
 }
 
 /**
@@ -114,43 +116,54 @@ async function generateWeeklySnapshots(books: BookForSnapshot[], weeks: number):
 /**
  * Check if a book was "never used" at a specific point in time
  * Reconstructs state by checking audit log history up to that date
+ * A book is "never used" if times_read = 0 AND current_possessor = owner
  */
-async function wasBookNeverUsedAtTime(book: { id: string; times_read: number }, snapshotDate: Date): Promise<boolean> {
+async function wasBookNeverUsedAtTime(book: BookForSnapshot, snapshotDate: Date): Promise<boolean> {
   // Import here to avoid circular dependency
   const { getAuditLogs } = await import('@/app/lib/db');
 
   // Get all audit logs for this book
   const allLogs = await getAuditLogs({ bookId: book.id, limit: 1000 });
 
-  // Filter logs that occurred before the snapshot date
-  const logsBeforeSnapshot = allLogs.filter(log => {
+  // Separate logs into before and after snapshot
+  const logsAfterSnapshot = allLogs.filter(log => {
     const logDate = new Date(log.timestamp);
-    return logDate <= snapshotDate;
+    return logDate > snapshotDate;
   });
 
-  // Check if times_read was ever incremented before this date
-  const timesReadLogs = logsBeforeSnapshot.filter(log => log.changed_field === 'times_read');
+  // Reconstruct times_read at snapshot date
+  // Start with current value and work backwards through logs after snapshot
   let timesReadAtSnapshot = book.times_read;
-
-  // Work backwards from current state
-  for (const log of timesReadLogs) {
-    const logDate = new Date(log.timestamp);
-    if (logDate > snapshotDate) {
-      // This log happened after snapshot, so subtract the change
-      timesReadAtSnapshot = parseInt(log.old_value);
-    }
+  const timesReadLogsAfter = logsAfterSnapshot.filter(log => log.changed_field === 'times_read');
+  for (const log of timesReadLogsAfter.reverse()) {
+    // This log happened after snapshot, so use old_value
+    timesReadAtSnapshot = parseInt(log.old_value);
+    break; // We only need the first one (closest to snapshot)
   }
 
-  // If the book was created after snapshot or had reads, it was "used"
+  // If book was read at snapshot time, it was "used"
   if (timesReadAtSnapshot > 0) {
     return false;
   }
 
-  // Check if possessor ever changed before this date
-  const possessorChanges = logsBeforeSnapshot.filter(log => log.changed_field === 'current_possessor');
+  // Reconstruct current_possessor at snapshot date
+  let possessorAtSnapshot = book.current_possessor;
+  const possessorLogsAfter = logsAfterSnapshot.filter(log => log.changed_field === 'current_possessor');
+  for (const log of possessorLogsAfter.reverse()) {
+    possessorAtSnapshot = log.old_value;
+    break;
+  }
 
-  // If there were any possessor changes before the snapshot, the book was "used"
-  return possessorChanges.length === 0;
+  // Reconstruct owner at snapshot date
+  let ownerAtSnapshot = book.owner;
+  const ownerLogsAfter = logsAfterSnapshot.filter(log => log.changed_field === 'owner');
+  for (const log of ownerLogsAfter.reverse()) {
+    ownerAtSnapshot = log.old_value;
+    break;
+  }
+
+  // Check if book was with owner (not checked out) at snapshot time
+  return possessorAtSnapshot === ownerAtSnapshot;
 }
 
 /**

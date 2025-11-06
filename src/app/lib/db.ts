@@ -603,8 +603,8 @@ export async function getAuditLogs(filters?: {
 /**
  * Check if a book has never been used
  * A book is "never used" if:
- * 1. times_read = 0 AND
- * 2. current_possessor has never changed (no audit log entry for current_possessor change)
+ * 1. times_read = 0 (never read) AND
+ * 2. current_possessor = owner (currently not checked out)
  */
 export async function isBookNeverUsed(bookId: string): Promise<boolean> {
   try {
@@ -613,25 +613,8 @@ export async function isBookNeverUsed(bookId: string): Promise<boolean> {
       return false;
     }
 
-    // Check if never read
-    if (book.times_read !== 0) {
-      return false;
-    }
-
-    // Check if possessor ever changed
-    if (USE_SQLITE && db) {
-      const possessorChanges = db.prepare(
-        'SELECT COUNT(*) as count FROM audit_logs WHERE book_id = ? AND changed_field = ?'
-      ).get(bookId, 'current_possessor') as { count: number };
-      return possessorChanges.count === 0;
-    }
-
-    const { rows } = await sql<{ count: number }>`
-      SELECT COUNT(*) as count
-      FROM audit_logs
-      WHERE book_id = ${bookId} AND changed_field = 'current_possessor'
-    `;
-    return (rows[0]?.count ?? 0) === 0;
+    // Check if never read AND currently with owner (not checked out)
+    return book.times_read === 0 && book.current_possessor === book.owner;
   } catch (error) {
     console.error('Error checking if book is never used:', error);
     throw error;
