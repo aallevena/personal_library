@@ -19,7 +19,10 @@ function HomeContent() {
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNavigation activeTab={selectedTab as any} onTabChange={setSelectedTab as any} />
+      <BottomNavigation
+        activeTab={selectedTab as 'books' | 'users' | 'analytics'}
+        onTabChange={(tab: string) => setSelectedTab(tab)}
+      />
     </div>
   );
 }

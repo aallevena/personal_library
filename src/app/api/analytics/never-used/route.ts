@@ -62,11 +62,17 @@ export async function GET(request: Request) {
   }
 }
 
+interface BookForSnapshot {
+  id: string;
+  date_added: string;
+  times_read: number;
+}
+
 /**
  * Generate weekly snapshots showing % of books that were "never used" at each point in time
  * This reconstructs historical state by analyzing when books were added and audit log history
  */
-async function generateWeeklySnapshots(books: any[], weeks: number): Promise<WeeklySnapshot[]> {
+async function generateWeeklySnapshots(books: BookForSnapshot[], weeks: number): Promise<WeeklySnapshot[]> {
   const snapshots: WeeklySnapshot[] = [];
   const now = new Date();
 
@@ -109,7 +115,7 @@ async function generateWeeklySnapshots(books: any[], weeks: number): Promise<Wee
  * Check if a book was "never used" at a specific point in time
  * Reconstructs state by checking audit log history up to that date
  */
-async function wasBookNeverUsedAtTime(book: any, snapshotDate: Date): Promise<boolean> {
+async function wasBookNeverUsedAtTime(book: { id: string; times_read: number }, snapshotDate: Date): Promise<boolean> {
   // Import here to avoid circular dependency
   const { getAuditLogs } = await import('@/app/lib/db');
 

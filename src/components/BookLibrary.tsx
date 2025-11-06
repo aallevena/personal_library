@@ -9,7 +9,6 @@ import FastScanModal, { ScanConfig } from './FastScanModal';
 import FastScanScanner from './FastScanScanner';
 import { parseTags, extractUniqueTags } from '../app/lib/tagUtils';
 import { useFilter } from '../contexts/FilterContext';
-import { isBookNeverUsed } from '../app/lib/db';
 import FilterChips from './FilterChips';
 
 interface BookLibraryProps {
@@ -33,7 +32,6 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [tagSearch, setTagSearch] = useState<string>('');
   const [neverUsedBookIds, setNeverUsedBookIds] = useState<Set<string>>(new Set());
-  const [checkingNeverUsed, setCheckingNeverUsed] = useState(false);
 
   useEffect(() => {
     fetchBooks();
@@ -90,27 +88,28 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
 
   // Check which books are "never used" when specialFilter is active
   useEffect(() => {
-    if (bookFilters.specialFilter === 'neverUsed' && books.length > 0) {
-      setCheckingNeverUsed(true);
-      Promise.all(books.map(book => isBookNeverUsed(book.id)))
-        .then(results => {
-          const neverUsedIds = new Set<string>();
-          books.forEach((book, index) => {
-            if (results[index]) {
-              neverUsedIds.add(book.id);
-            }
+    const checkNeverUsedBooks = async () => {
+      if (bookFilters.specialFilter === 'neverUsed' && books.length > 0) {
+        try {
+          const response = await fetch('/api/books/never-used', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookIds: books.map(b => b.id) })
           });
-          setNeverUsedBookIds(neverUsedIds);
-        })
-        .catch(err => {
+          const data = await response.json();
+
+          if (data.success) {
+            setNeverUsedBookIds(new Set(data.neverUsedIds));
+          }
+        } catch (err) {
           console.error('Error checking never used books:', err);
-        })
-        .finally(() => {
-          setCheckingNeverUsed(false);
-        });
-    } else {
-      setNeverUsedBookIds(new Set());
-    }
+        }
+      } else {
+        setNeverUsedBookIds(new Set());
+      }
+    };
+
+    checkNeverUsedBooks();
   }, [bookFilters.specialFilter, books]);
 
   const handleAddBook = (book: Book) => {

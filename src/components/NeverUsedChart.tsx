@@ -65,8 +65,8 @@ export default function NeverUsedChart({ data, loading }: NeverUsedChartProps) {
               borderRadius: '6px',
               padding: '8px 12px'
             }}
-            formatter={(value: number, name: string, props: any) => {
-              if (name === 'percentage') {
+            formatter={(value: number, name: string, props?: { payload?: WeeklyDataPoint }) => {
+              if (name === 'percentage' && props?.payload) {
                 return [
                   <>
                     <div><strong>{value}%</strong> never used</div>
