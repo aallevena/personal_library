@@ -7,7 +7,7 @@ interface BookFilters {
   state?: Book['state'] | 'all';
   owner?: string;
   possessor?: string;
-  tags?: string;
+  tags?: string; // General search query (searches titles, authors, and tags)
   specialFilter?: 'neverUsed' | null;
 }
 

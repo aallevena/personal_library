@@ -58,10 +58,10 @@ export default function FilterChips({
     });
   }
 
-  // Add tags chip
+  // Add search chip
   if (tags) {
     chips.push({
-      label: `Tags: ${tags}`,
+      label: `Search: ${tags}`,
       onRemove: onRemoveTags
     });
   }

@@ -25,12 +25,12 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [filter, setFilter] = useState<Book['state'] | 'all'>('all');
   const [users, setUsers] = useState<User[]>([]);
-  const [ownerFilter, setOwnerFilter] = useState<string>('all');
-  const [possessorFilter, setPossessorFilter] = useState<string>('all');
+  const [ownerFilter, setOwnerFilter] = useState<string>('Alleven Family');
+  const [possessorFilter, setPossessorFilter] = useState<string>('Alleven Family');
   const [showFastScan, setShowFastScan] = useState(false);
   const [scanConfig, setScanConfig] = useState<ScanConfig | null>(null);
   const [tagFilter, setTagFilter] = useState<string>('all');
-  const [tagSearch, setTagSearch] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [neverUsedBookIds, setNeverUsedBookIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
       setPossessorFilter(bookFilters.possessor);
     }
     if (bookFilters.tags) {
-      setTagSearch(bookFilters.tags);
+      setSearchQuery(bookFilters.tags);
     }
   }, [bookFilters]);
 
@@ -194,8 +194,8 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     setBookFilters({ ...bookFilters, possessor: undefined });
   };
 
-  const handleRemoveTagsFilter = () => {
-    setTagSearch('');
+  const handleRemoveSearchFilter = () => {
+    setSearchQuery('');
     setBookFilters({ ...bookFilters, tags: undefined });
   };
 
@@ -221,14 +221,24 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
       return true;
     })
     .filter(book => {
-      // Tag search filter
-      if (tagSearch.trim()) {
+      // Search filter (title, author, or tags)
+      if (searchQuery.trim()) {
+        const searchLower = searchQuery.toLowerCase();
+
+        // Check title
+        const titleMatch = book.title?.toLowerCase().includes(searchLower);
+
+        // Check author
+        const authorMatch = book.author?.toLowerCase().includes(searchLower);
+
+        // Check tags
         const bookTags = parseTags(book.tags || '');
-        const searchLower = tagSearch.toLowerCase();
-        const hasMatchingTag = bookTags.some(tag =>
+        const tagMatch = bookTags.some(tag =>
           tag.toLowerCase().includes(searchLower)
         );
-        if (!hasMatchingTag) {
+
+        // Return true if any field matches
+        if (!titleMatch && !authorMatch && !tagMatch) {
           return false;
         }
       }
@@ -320,9 +330,9 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
 
                   <input
                     type="text"
-                    value={tagSearch}
-                    onChange={(e) => setTagSearch(e.target.value)}
-                    placeholder="Search tags..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search books..."
                     className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 min-h-[44px] touch-manipulation"
                   />
                 </>
@@ -340,12 +350,12 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
             state={filter}
             owner={ownerFilter !== 'all' ? ownerFilter : undefined}
             possessor={possessorFilter !== 'all' ? possessorFilter : undefined}
-            tags={tagSearch || undefined}
+            tags={searchQuery || undefined}
             specialFilter={bookFilters.specialFilter}
             onRemoveState={handleRemoveStateFilter}
             onRemoveOwner={handleRemoveOwnerFilter}
             onRemovePossessor={handleRemovePossessorFilter}
-            onRemoveTags={handleRemoveTagsFilter}
+            onRemoveTags={handleRemoveSearchFilter}
             onRemoveSpecialFilter={handleRemoveSpecialFilter}
           />
         </div>
