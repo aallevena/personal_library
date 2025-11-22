@@ -22,6 +22,7 @@ export default function AddContainerForm({ container, onSuccess, onCancel }: Add
 
   const [users, setUsers] = useState<User[]>([]);
   const [containers, setContainers] = useState<Container[]>([]);
+  const [householdContainer, setHouseholdContainer] = useState<Container | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -39,16 +40,25 @@ export default function AddContainerForm({ container, onSuccess, onCancel }: Add
 
         if (usersData.success) {
           setUsers(usersData.users);
-          // Set default owner if creating new container
-          if (!container && usersData.users.length > 0) {
-            setFormData(prev => ({ ...prev, owner: usersData.users[0].name }));
+          // Set default owner to Alleven Family if creating new container
+          if (!container) {
+            setFormData(prev => ({ ...prev, owner: 'Alleven Family' }));
           }
         }
 
         if (containersData.success) {
-          // Filter out current container and household container from parent options
+          // Find household container
+          const household = containersData.containers.find((c: Container) => c.is_household);
+          setHouseholdContainer(household || null);
+
+          // Set default parent to Household if creating new container
+          if (!container && household) {
+            setFormData(prev => ({ ...prev, parent_container_id: household.id }));
+          }
+
+          // Filter out current container from parent options (keep Household)
           const availableContainers = containersData.containers.filter(
-            (c: Container) => c.id !== container?.id && !c.is_household
+            (c: Container) => c.id !== container?.id
           );
           setContainers(availableContainers);
         }
@@ -147,7 +157,7 @@ export default function AddContainerForm({ container, onSuccess, onCancel }: Add
               required
               value={formData.name}
               onChange={handleInputChange}
-              placeholder="e.g., Main Street Little Free Library"
+              placeholder="books we haven't read yet"
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -184,7 +194,7 @@ export default function AddContainerForm({ container, onSuccess, onCancel }: Add
               name="location"
               value={formData.location}
               onChange={handleInputChange}
-              placeholder="e.g., 123 Main St, Springfield"
+              placeholder="e.g. my house, basement"
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
