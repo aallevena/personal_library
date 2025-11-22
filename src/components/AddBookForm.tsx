@@ -74,16 +74,27 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
 
   useEffect(() => {
     if (book) {
+      // Helper function to convert ISO date to yyyy-MM-dd format
+      const formatDateForInput = (dateString: string | undefined): string => {
+        if (!dateString) return '';
+        try {
+          const date = new Date(dateString);
+          return date.toISOString().split('T')[0];
+        } catch {
+          return '';
+        }
+      };
+
       setFormData({
         title: book.title,
         author: book.author || '',
-        publish_date: book.publish_date || '',
+        publish_date: formatDateForInput(book.publish_date),
         summary: book.summary || '',
         state: book.state,
         owner: book.owner,
         current_possessor: book.current_possessor,
         times_read: book.times_read,
-        last_read: book.last_read || '',
+        last_read: formatDateForInput(book.last_read),
         isbn: book.isbn || '',
         tags: book.tags || '',
         ...((book as Book & { container_id?: string }).container_id && { container_id: (book as Book & { container_id?: string }).container_id })
