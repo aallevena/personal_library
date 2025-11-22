@@ -361,7 +361,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
                   className="bg-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-purple-700 font-medium min-h-[44px] touch-manipulation text-sm sm:text-base"
                 >
                   <span className="hidden sm:inline">Fast Scan</span>
-                  <span className="sm:hidden">Scan</span>
+                  <span className="sm:hidden">Multiscan</span>
                 </button>
 
                 <button
