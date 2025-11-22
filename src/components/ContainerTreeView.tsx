@@ -47,6 +47,30 @@ export default function ContainerTreeView({
       {/* Show content when expanded */}
       {isExpanded && hasContent && (
         <div className="ml-8 mt-2 space-y-2">
+          {/* Show nested containers */}
+          {childContainers.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Containers ({childContainers.length})
+              </h4>
+              {childContainers.map(child => (
+                <ContainerTreeView
+                  key={child.id}
+                  container={child}
+                  allContainers={allContainers}
+                  allBooks={allBooks}
+                  onEditContainer={onEditContainer}
+                  onDeleteContainer={onDeleteContainer}
+                  onEditBook={onEditBook}
+                  level={level + 1}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Show books */}
           {booksInContainer.length > 0 && (
             <div className="space-y-2">
@@ -88,30 +112,6 @@ export default function ContainerTreeView({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Show nested containers */}
-          {childContainers.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                Containers ({childContainers.length})
-              </h4>
-              {childContainers.map(child => (
-                <ContainerTreeView
-                  key={child.id}
-                  container={child}
-                  allContainers={allContainers}
-                  allBooks={allBooks}
-                  onEditContainer={onEditContainer}
-                  onDeleteContainer={onDeleteContainer}
-                  onEditBook={onEditBook}
-                  level={level + 1}
-                />
-              ))}
             </div>
           )}
         </div>
