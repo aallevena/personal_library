@@ -8,14 +8,15 @@ export default async function PublicContainerPage({
 }) {
   const { code } = await params;
 
-  const container = await getContainerByCode(code);
+  try {
+    const container = await getContainerByCode(code);
 
-  if (!container) {
-    notFound();
-  }
+    if (!container) {
+      notFound();
+    }
 
-  // Get all contents recursively (books and nested containers)
-  const { books, containers: childContainers } = await getAllContainerContentsRecursive(container.id);
+    // Get all contents recursively (books and nested containers)
+    const { books, containers: childContainers } = await getAllContainerContentsRecursive(container.id);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -156,4 +157,8 @@ export default async function PublicContainerPage({
       </div>
     </div>
   );
+  } catch (error) {
+    console.error('Error loading container page:', error);
+    notFound();
+  }
 }
