@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Get container_id, default to Household if not provided
-    let container_id = (body as any).container_id;
+    let container_id = (body as { container_id?: string }).container_id;
     if (!container_id) {
       const household = await getHouseholdContainer();
       if (!household) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Container } from '../../types/container';
 import { Book } from '../../types/book';
 import ContainerTreeView from './ContainerTreeView';
@@ -63,32 +63,6 @@ export default function ContainerManager({ initialContainers, initialBooks }: Co
   const handleEditBook = (book: Book) => {
     setBooks(prev => prev.map(b => b.id === book.id ? book : b));
     setEditingBook(null);
-  };
-
-  const refreshData = async () => {
-    try {
-      setLoading(true);
-      const [containersRes, booksRes] = await Promise.all([
-        fetch('/api/containers'),
-        fetch('/api/books')
-      ]);
-
-      const containersData = await containersRes.json();
-      const booksData = await booksRes.json();
-
-      if (containersData.success) {
-        setContainers(containersData.containers);
-      }
-
-      if (booksData.success) {
-        setBooks(booksData.books);
-      }
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-      setError('Failed to refresh data');
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (

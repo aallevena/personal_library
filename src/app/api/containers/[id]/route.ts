@@ -35,7 +35,13 @@ export async function PUT(
     const body = await request.json();
 
     // Build updates object with only provided fields
-    const updates: any = {};
+    const updates: Partial<{
+      name: string;
+      owner: string;
+      tags?: string;
+      location?: string;
+      parent_container_id?: string;
+    }> = {};
 
     if (body.name !== undefined) {
       if (body.name.trim() === '') {

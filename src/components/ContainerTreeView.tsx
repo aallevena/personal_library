@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Container } from '../../types/container';
 import { Book } from '../../types/book';
 import ContainerCard from './ContainerCard';
@@ -30,7 +30,7 @@ export default function ContainerTreeView({
   const childContainers = allContainers.filter(c => c.parent_container_id === container.id);
 
   // Get books in this container
-  const booksInContainer = allBooks.filter((b: any) => b.container_id === container.id);
+  const booksInContainer = allBooks.filter((b: Book & { container_id?: string }) => b.container_id === container.id);
 
   const hasContent = childContainers.length > 0 || booksInContainer.length > 0;
 
@@ -57,7 +57,7 @@ export default function ContainerTreeView({
                 Books ({booksInContainer.length})
               </h4>
               <div className="space-y-1">
-                {booksInContainer.map((book: any) => (
+                {booksInContainer.map((book: Book & { container_id?: string }) => (
                   <div
                     key={book.id}
                     className="p-3 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"

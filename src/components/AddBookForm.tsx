@@ -86,8 +86,8 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
         last_read: book.last_read || '',
         isbn: book.isbn || '',
         tags: book.tags || '',
-        ...(book as any).container_id && { container_id: (book as any).container_id }
-      } as any);
+        ...((book as Book & { container_id?: string }).container_id && { container_id: (book as Book & { container_id?: string }).container_id })
+      });
     }
   }, [book]);
 
@@ -381,7 +381,7 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
               <select
                 id="container_id"
                 name="container_id"
-                value={(formData as any).container_id || householdContainerId}
+                value={(formData as BookFormData & { container_id?: string }).container_id || householdContainerId}
                 onChange={handleInputChange}
                 disabled={loadingUsers}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

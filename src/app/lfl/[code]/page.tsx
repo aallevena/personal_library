@@ -77,7 +77,7 @@ export default async function PublicContainerPage({
               Available Books
             </h2>
             <div className="grid gap-4">
-              {books.map((book: any) => (
+              {books.map((book: { id: string; title: string; author?: string; summary?: string; state: string; publish_date?: string }) => (
                 <div
                   key={book.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -125,7 +125,7 @@ export default async function PublicContainerPage({
               Nested Collections
             </h2>
             <div className="grid gap-3">
-              {childContainers.map((child: any) => (
+              {childContainers.map((child: { id: string; name: string; location?: string }) => (
                 <div
                   key={child.id}
                   className="border border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors"
@@ -160,7 +160,7 @@ export default async function PublicContainerPage({
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-600">
           <p>
-            Share this link to let others see what's available: <br />
+            Share this link to let others see what&apos;s available: <br />
             <span className="font-mono text-blue-600">{code}</span>
           </p>
         </div>

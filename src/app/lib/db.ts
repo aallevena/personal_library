@@ -1047,7 +1047,7 @@ export async function moveBookToContainer(bookId: string, toContainerId: string)
       throw new Error('Destination container not found');
     }
 
-    const fromContainerId = (book as any).container_id;
+    const fromContainerId = (book as Book & { container_id?: string }).container_id;
 
     // Update the book's container
     if (USE_SQLITE && db) {
