@@ -38,6 +38,8 @@ export default function ContainerTreeView({
     <div className={`${level > 0 ? 'ml-8 mt-4' : 'mt-4'}`}>
       <ContainerCard
         container={container}
+        allContainers={allContainers}
+        allBooks={allBooks}
         onEdit={onEditContainer}
         onDelete={onDeleteContainer}
         onToggle={() => setIsExpanded(!isExpanded)}
