@@ -182,7 +182,9 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
 
   const handleStartSelection = () => {
     setSelectionMode(true);
-    setSelectedBooks(new Set());
+    // Select all visible books by default
+    const allBookIds = filteredBooks.map(b => b.id);
+    setSelectedBooks(new Set(allBookIds));
   };
 
   const handleCancelSelection = () => {
@@ -343,28 +345,31 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
         
         <div className="flex flex-col gap-4">
           {/* Action Buttons Row */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {!selectionMode ? (
               <>
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium min-h-[44px] touch-manipulation"
+                  className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 font-medium min-h-[44px] touch-manipulation text-sm sm:text-base"
                 >
-                  Add Book
+                  <span className="hidden sm:inline">Add Book</span>
+                  <span className="sm:hidden">Add</span>
                 </button>
 
                 <button
                   onClick={() => setShowFastScan(true)}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium min-h-[44px] touch-manipulation"
+                  className="bg-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-purple-700 font-medium min-h-[44px] touch-manipulation text-sm sm:text-base"
                 >
-                  Fast Scan
+                  <span className="hidden sm:inline">Fast Scan</span>
+                  <span className="sm:hidden">Scan</span>
                 </button>
 
                 <button
                   onClick={handleStartSelection}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium min-h-[44px] touch-manipulation"
+                  className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-700 font-medium min-h-[44px] touch-manipulation text-sm sm:text-base"
                 >
-                  Move to Container
+                  <span className="hidden sm:inline">Move to Container</span>
+                  <span className="sm:hidden">Move</span>
                 </button>
               </>
             ) : (
@@ -372,13 +377,13 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
                 <button
                   onClick={handleOpenMoveModal}
                   disabled={selectedBooks.size === 0}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium min-h-[44px] touch-manipulation disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-700 font-medium min-h-[44px] touch-manipulation disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   Move {selectedBooks.size} Book{selectedBooks.size !== 1 ? 's' : ''}
                 </button>
                 <button
                   onClick={handleCancelSelection}
-                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-medium min-h-[44px] touch-manipulation"
+                  className="bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 font-medium min-h-[44px] touch-manipulation text-sm sm:text-base"
                 >
                   Cancel
                 </button>
