@@ -35,7 +35,7 @@ export default function ContainerTreeView({
   const hasContent = childContainers.length > 0 || booksInContainer.length > 0;
 
   return (
-    <div className={`${level > 0 ? 'ml-8 mt-4' : 'mt-4'}`}>
+    <div className={`${level > 0 ? 'ml-4 mt-4' : 'mt-4'}`}>
       <ContainerCard
         container={container}
         allContainers={allContainers}
@@ -48,7 +48,7 @@ export default function ContainerTreeView({
 
       {/* Show content when expanded */}
       {isExpanded && hasContent && (
-        <div className="ml-8 mt-2 space-y-2">
+        <div className="ml-4 mt-2 space-y-2">
           {/* Show nested containers */}
           {childContainers.length > 0 && (
             <div className="space-y-2">
@@ -121,7 +121,7 @@ export default function ContainerTreeView({
 
       {/* Show empty state */}
       {isExpanded && !hasContent && (
-        <div className="ml-8 mt-2 p-4 bg-gray-50 border border-gray-200 rounded-md text-center">
+        <div className="ml-4 mt-2 p-4 bg-gray-50 border border-gray-200 rounded-md text-center">
           <p className="text-sm text-gray-500">This container is empty</p>
         </div>
       )}

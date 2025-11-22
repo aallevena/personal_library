@@ -86,7 +86,7 @@ export default function ContainerCard({
       </div>
 
       {/* Container details */}
-      <div className="ml-7 space-y-1 text-sm">
+      <div className="ml-3 space-y-1 text-sm">
         <p className="text-gray-600">
           <span className="font-medium">Owner:</span> {container.owner}
         </p>
