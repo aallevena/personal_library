@@ -9,9 +9,20 @@ interface BookCardProps {
   onEdit: (book: Book) => void;
   onDelete: (id: string) => void;
   onUpdateStatus: (id: string, newStatus: Book['state']) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
-export default function BookCard({ book, onEdit, onDelete, onUpdateStatus }: BookCardProps) {
+export default function BookCard({
+  book,
+  onEdit,
+  onDelete,
+  onUpdateStatus,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelection
+}: BookCardProps) {
   const getStateColor = (state: Book['state']) => {
     switch (state) {
       case 'In library':
@@ -30,8 +41,26 @@ export default function BookCard({ book, onEdit, onDelete, onUpdateStatus }: Boo
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+    <div
+      className={`bg-white rounded-lg shadow-md p-6 border-2 transition-all ${
+        selectionMode
+          ? isSelected
+            ? 'border-green-500 bg-green-50'
+            : 'border-gray-200 hover:border-green-300'
+          : 'border-gray-200 hover:shadow-lg'
+      }`}
+    >
       <div className="flex justify-between items-start mb-4">
+        {selectionMode && onToggleSelection && (
+          <div className="mr-3 mt-1">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={onToggleSelection}
+              className="w-5 h-5 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+            />
+          </div>
+        )}
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900 mb-1">
             {book.title}
@@ -40,20 +69,22 @@ export default function BookCard({ book, onEdit, onDelete, onUpdateStatus }: Boo
             <p className="text-gray-600 mb-2">by {book.author}</p>
           )}
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onEdit(book)}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => onDelete(book.id)}
-            className="text-red-600 hover:text-red-800 text-sm font-medium"
-          >
-            Delete
-          </button>
-        </div>
+        {!selectionMode && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => onEdit(book)}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => onDelete(book.id)}
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

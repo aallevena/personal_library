@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Book } from '../../types/book';
 import { User } from '../../types/user';
+import { Container } from '../../types/container';
 import BookCard from './BookCard';
 import AddBookForm from './AddBookForm';
 import FastScanModal, { ScanConfig } from './FastScanModal';
@@ -32,10 +33,16 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [neverUsedBookIds, setNeverUsedBookIds] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set());
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [containers, setContainers] = useState<Container[]>([]);
+  const [selectedContainer, setSelectedContainer] = useState<string>('');
 
   useEffect(() => {
     fetchBooks();
     fetchUsers();
+    fetchContainers();
   }, []);
 
   // Sync with FilterContext when coming from Analytics
@@ -63,6 +70,18 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
       }
     } catch (err) {
       console.error('Error fetching users:', err);
+    }
+  };
+
+  const fetchContainers = async () => {
+    try {
+      const response = await fetch('/api/containers');
+      const data = await response.json();
+      if (data.success && data.containers) {
+        setContainers(data.containers);
+      }
+    } catch (err) {
+      console.error('Error fetching containers:', err);
     }
   };
 
@@ -135,7 +154,7 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setBooks(prev => prev.filter(book => book.id !== id));
       } else {
@@ -144,6 +163,71 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
     } catch (err) {
       setError('Failed to delete book');
       console.error('Error deleting book:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleSelection = (bookId: string) => {
+    setSelectedBooks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(bookId)) {
+        newSet.delete(bookId);
+      } else {
+        newSet.add(bookId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleStartSelection = () => {
+    setSelectionMode(true);
+    setSelectedBooks(new Set());
+  };
+
+  const handleCancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedBooks(new Set());
+  };
+
+  const handleOpenMoveModal = () => {
+    if (selectedBooks.size === 0) {
+      alert('Please select at least one book to move');
+      return;
+    }
+    setShowMoveModal(true);
+  };
+
+  const handleMoveBooks = async () => {
+    if (!selectedContainer) {
+      alert('Please select a container');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Move all selected books
+      const promises = Array.from(selectedBooks).map(bookId =>
+        fetch(`/api/books/${bookId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ container_id: selectedContainer })
+        })
+      );
+
+      await Promise.all(promises);
+
+      // Refresh books to show updated container assignments
+      await fetchBooks();
+
+      // Exit selection mode
+      setSelectionMode(false);
+      setSelectedBooks(new Set());
+      setShowMoveModal(false);
+      setSelectedContainer('');
+    } catch (err) {
+      console.error('Error moving books:', err);
+      alert('Failed to move some books. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -260,19 +344,46 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
         <div className="flex flex-col gap-4">
           {/* Action Buttons Row */}
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium min-h-[44px] touch-manipulation"
-            >
-              Add Book
-            </button>
+            {!selectionMode ? (
+              <>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium min-h-[44px] touch-manipulation"
+                >
+                  Add Book
+                </button>
 
-            <button
-              onClick={() => setShowFastScan(true)}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium min-h-[44px] touch-manipulation"
-            >
-              Fast Scan
-            </button>
+                <button
+                  onClick={() => setShowFastScan(true)}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium min-h-[44px] touch-manipulation"
+                >
+                  Fast Scan
+                </button>
+
+                <button
+                  onClick={handleStartSelection}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium min-h-[44px] touch-manipulation"
+                >
+                  Move to Container
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleOpenMoveModal}
+                  disabled={selectedBooks.size === 0}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium min-h-[44px] touch-manipulation disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Move {selectedBooks.size} Book{selectedBooks.size !== 1 ? 's' : ''}
+                </button>
+                <button
+                  onClick={handleCancelSelection}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-medium min-h-[44px] touch-manipulation"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
 
           {/* Filters Row */}
@@ -396,6 +507,9 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
             onEdit={setEditingBook}
             onDelete={handleDeleteBook}
             onUpdateStatus={handleUpdateStatus}
+            selectionMode={selectionMode}
+            isSelected={selectedBooks.has(book.id)}
+            onToggleSelection={() => handleToggleSelection(book.id)}
           />
         ))}
       </div>
@@ -431,6 +545,54 @@ export default function BookLibrary({ initialBooks = [] }: BookLibraryProps) {
           }}
           onBookAdded={handleAddBook}
         />
+      )}
+
+      {showMoveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Move {selectedBooks.size} Book{selectedBooks.size !== 1 ? 's' : ''} to Container
+            </h2>
+
+            <div className="mb-6">
+              <label htmlFor="container-select" className="block text-sm font-medium text-gray-700 mb-2">
+                Select Container
+              </label>
+              <select
+                id="container-select"
+                value={selectedContainer}
+                onChange={(e) => setSelectedContainer(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Choose a container...</option>
+                {containers.map(container => (
+                  <option key={container.id} value={container.id}>
+                    {container.name} {container.is_household ? '(Household)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => {
+                  setShowMoveModal(false);
+                  setSelectedContainer('');
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMoveBooks}
+                disabled={!selectedContainer || loading}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+              >
+                {loading ? 'Moving...' : 'Move Books'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
