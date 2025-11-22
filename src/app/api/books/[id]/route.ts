@@ -111,6 +111,7 @@ export async function PUT(
     if (body.last_read !== undefined) sanitizedData.last_read = body.last_read?.trim() || undefined;
     if (body.isbn !== undefined) sanitizedData.isbn = body.isbn?.trim() || undefined;
     if (body.tags !== undefined) sanitizedData.tags = normalizeTags(body.tags) || undefined;
+    if ((body as { container_id?: string }).container_id !== undefined) (sanitizedData as { container_id?: string }).container_id = (body as { container_id?: string }).container_id;
 
     // Update the book
     const updatedBook = await updateBook(id, sanitizedData);
