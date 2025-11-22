@@ -1,6 +1,6 @@
 'use client';
 
-export type TabType = 'books' | 'users' | 'analytics';
+export type TabType = 'books' | 'users' | 'analytics' | 'containers';
 
 interface BottomNavigationProps {
   activeTab: TabType;
@@ -10,6 +10,7 @@ interface BottomNavigationProps {
 export default function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
   const tabs = [
     { id: 'books' as TabType, label: 'Books', icon: '📚' },
+    { id: 'containers' as TabType, label: 'Containers', icon: '📦' },
     { id: 'users' as TabType, label: 'Users', icon: '👥' },
     { id: 'analytics' as TabType, label: 'Analytics', icon: '📊' },
   ];

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllBooks, createBook } from '@/app/lib/db';
+import { getAllBooks, createBook, getHouseholdContainer } from '@/app/lib/db';
 import { BookFormData } from '../../../../types/book';
 import { validateTags, normalizeTags } from '@/app/lib/tagUtils';
 
@@ -89,6 +89,22 @@ export async function POST(request: NextRequest) {
       return undefined;
     };
 
+    // Get container_id, default to Household if not provided
+    let container_id = (body as any).container_id;
+    if (!container_id) {
+      const household = await getHouseholdContainer();
+      if (!household) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Household container not found. Please initialize the database first.'
+          },
+          { status: 500 }
+        );
+      }
+      container_id = household.id;
+    }
+
     // Create the book with default values for missing fields
     // Convert empty strings to undefined for optional fields, especially dates
     const bookData = {
@@ -103,7 +119,8 @@ export async function POST(request: NextRequest) {
       last_read: validateDate(body.last_read),
       date_added: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
       isbn: body.isbn?.trim() || undefined,
-      tags: normalizeTags(body.tags) || undefined
+      tags: normalizeTags(body.tags) || undefined,
+      container_id
     };
 
     const newBook = await createBook(bookData);

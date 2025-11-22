@@ -172,5 +172,6 @@ CREATE TABLE audit_logs (
 - PL-20 #bug Mobile: BookCard Edit/Delete buttons too small and could overlap with long titles.
 - PL-21 #bug Mobile: Status badge and dropdown controls could overflow on small screens with long state names.
 - PL-28 #bug Remove publish date from the card display.
+- PL-30 #feature Make tags structured (not free-form text): Convert tags from space-separated strings to a structured format with autocomplete, predefined options, and better validation.
 
 <!-- Add new feature tickets below -->

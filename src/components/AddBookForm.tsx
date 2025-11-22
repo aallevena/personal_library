@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Book, BookFormData } from '../../types/book';
 import { User } from '../../types/user';
+import { Container } from '../../types/container';
 import BarcodeScanner from './BarcodeScanner';
 import TagInput from './TagInput';
 
@@ -35,24 +36,40 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
   const [submitting, setSubmitting] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [containers, setContainers] = useState<Container[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [householdContainerId, setHouseholdContainerId] = useState<string>('');
 
-  // Fetch users on component mount
+  // Fetch users and containers on component mount
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/users');
-        const data = await response.json();
-        if (data.success && data.users) {
-          setUsers(data.users);
+        const [usersRes, containersRes] = await Promise.all([
+          fetch('/api/users'),
+          fetch('/api/containers')
+        ]);
+        const usersData = await usersRes.json();
+        const containersData = await containersRes.json();
+
+        if (usersData.success && usersData.users) {
+          setUsers(usersData.users);
+        }
+
+        if (containersData.success && containersData.containers) {
+          setContainers(containersData.containers);
+          // Find household container
+          const household = containersData.containers.find((c: Container) => c.is_household);
+          if (household) {
+            setHouseholdContainerId(household.id);
+          }
         }
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoadingUsers(false);
       }
     };
-    fetchUsers();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -69,7 +86,8 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
         last_read: book.last_read || '',
         isbn: book.isbn || '',
         tags: book.tags || '',
-      });
+        ...(book as any).container_id && { container_id: (book as any).container_id }
+      } as any);
     }
   }, [book]);
 
@@ -353,6 +371,30 @@ export default function AddBookForm({ book, onSuccess, onCancel }: AddBookFormPr
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Container */}
+            <div>
+              <label htmlFor="container_id" className="block text-sm font-medium text-gray-700">
+                Container
+              </label>
+              <select
+                id="container_id"
+                name="container_id"
+                value={(formData as any).container_id || householdContainerId}
+                onChange={handleInputChange}
+                disabled={loadingUsers}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {containers.map((container) => (
+                  <option key={container.id} value={container.id}>
+                    {container.name} {container.is_household ? '(Household)' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Choose which container this book is stored in
+              </p>
             </div>
           </div>
 
