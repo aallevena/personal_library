@@ -1,18 +1,5 @@
 import { notFound } from 'next/navigation';
-
-async function getContainerByCode(code: string) {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/containers/code/${code}`,
-      { cache: 'no-store' }
-    );
-    const data = await res.json();
-    return data.success ? data : null;
-  } catch (error) {
-    console.error('Error fetching container:', error);
-    return null;
-  }
-}
+import { getContainerByCode, getAllContainerContentsRecursive } from '@/app/lib/db';
 
 export default async function PublicContainerPage({
   params,
@@ -20,13 +7,15 @@ export default async function PublicContainerPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const data = await getContainerByCode(code);
 
-  if (!data) {
+  const container = await getContainerByCode(code);
+
+  if (!container) {
     notFound();
   }
 
-  const { container, books, childContainers } = data;
+  // Get all contents recursively (books and nested containers)
+  const { books, containers: childContainers } = await getAllContainerContentsRecursive(container.id);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
